@@ -7,6 +7,7 @@ import (
 	models "github.com/nikitavaulin/metrics/internal/model"
 )
 
+// TODO: 2 map
 type MemStorage struct {
 	storage sync.Map
 }

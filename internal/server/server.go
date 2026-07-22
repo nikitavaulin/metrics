@@ -18,6 +18,10 @@ func New(config *serverconfig.HTTPServerConfig) *HTTPServer {
 	}
 }
 
+func (s *HTTPServer) RegisterRouter(router Router) {
+	s.mux.Handle("/", router)
+}
+
 func (s *HTTPServer) Run() error {
 	return http.ListenAndServe(s.address, s.mux)
 }
