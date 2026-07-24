@@ -3,11 +3,8 @@ package memstorage
 import (
 	"fmt"
 	"sync"
-
-	models "github.com/nikitavaulin/metrics/internal/model"
 )
 
-// TODO: 2 map
 type MemStorage struct {
 	storage sync.Map
 }
@@ -16,7 +13,7 @@ func New() *MemStorage {
 	return &MemStorage{}
 }
 
-func (s *MemStorage) Get(name string) (*models.Metrics, error) {
+func (s *MemStorage) Get(name string) (any, error) {
 	metric, err := s.GetOrNil(name)
 	if err != nil {
 		return nil, err
@@ -27,19 +24,15 @@ func (s *MemStorage) Get(name string) (*models.Metrics, error) {
 	return metric, nil
 }
 
-func (s *MemStorage) GetOrNil(name string) (*models.Metrics, error) {
+func (s *MemStorage) GetOrNil(name string) (any, error) {
 	m, ok := s.storage.Load(name)
 	if !ok {
 		return nil, nil
 	}
-	metric, ok := m.(models.Metrics)
-	if !ok {
-		return nil, fmt.Errorf("failed to convert object to metric")
-	}
-	return &metric, nil
+	return m, nil
 }
 
-func (s *MemStorage) Add(name string, metric models.Metrics) error {
+func (s *MemStorage) Add(name string, metric any) error {
 	_, ok := s.storage.Load(name)
 	if ok {
 		return fmt.Errorf("metric is already exist")
@@ -48,7 +41,7 @@ func (s *MemStorage) Add(name string, metric models.Metrics) error {
 	return nil
 }
 
-func (s *MemStorage) Update(name string, updated models.Metrics) error {
+func (s *MemStorage) Update(name string, updated any) error {
 	_, ok := s.storage.Load(name)
 	if !ok {
 		return fmt.Errorf("metric with name=%s not found", name)

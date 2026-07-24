@@ -22,21 +22,29 @@ func (s *MetricsService) Add(name string, metric models.Metrics) error {
 	if err != nil {
 		return fmt.Errorf("failed to get previous metric value: %w", err)
 	}
+
+	// новое значение
 	if prev == nil {
-		return s.storage.Add(name, metric)
+		if metric.MType == models.Counter {
+			return s.storage.Add(name, *metric.Delta)
+		}
+		return s.storage.Add(name, *metric.Value)
 	}
 
-	metric.ID = prev.ID
-	// непонятно, что делать с хэшем
+	// непонятно, что делать с ID и хэшем
 
 	switch metric.MType {
 	case models.Gauge:
-		return s.storage.Update(name, metric)
+		return s.storage.Update(name, *metric.Value)
 
 	case models.Counter:
-		cnter := *prev.Delta + *metric.Delta
-		metric.Delta = &cnter
-		return s.storage.Update(name, metric)
+		prevValue, ok := prev.(int64)
+		if !ok {
+			return fmt.Errorf("failed to convert previous metric value to int")
+		}
+		counter := prevValue + *metric.Delta
+		return s.storage.Update(name, counter)
 	}
-	return fmt.Errorf("unexpected error")
+
+	return fmt.Errorf("metricsservice: unexpected error")
 }
