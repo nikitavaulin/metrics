@@ -18,6 +18,10 @@ func New(storage repository.Storage) *MetricsService {
 }
 
 func (s *MetricsService) Add(name string, metric models.Metrics) error {
+	if err := validateMetric(name, metric); err != nil {
+		return fmt.Errorf("invalid input params: %w", err)
+	}
+
 	prev, err := s.storage.GetOrNil(name)
 	if err != nil {
 		return fmt.Errorf("failed to get previous metric value: %w", err)
@@ -46,5 +50,24 @@ func (s *MetricsService) Add(name string, metric models.Metrics) error {
 		return s.storage.Update(name, counter)
 	}
 
-	return fmt.Errorf("metricsservice: unexpected error")
+	return fmt.Errorf("metricsservice: unknown mtype")
+}
+
+func validateMetric(name string, metric models.Metrics) error {
+	if len(name) == 0 {
+		return fmt.Errorf("metric name must be not empty")
+	}
+	switch metric.MType {
+	case models.Counter:
+		if metric.Delta == nil {
+			return fmt.Errorf("counter has empty delta value")
+		}
+	case models.Gauge:
+		if metric.Value == nil {
+			return fmt.Errorf("gauge has empty value")
+		}
+	default:
+		return fmt.Errorf("unknown metric type")
+	}
+	return nil
 }

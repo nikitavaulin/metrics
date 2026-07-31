@@ -47,14 +47,14 @@ func parseMetric(r *http.Request) (models.Metrics, error) {
 	case models.Counter:
 		number, err := strconv.ParseInt(value, 10, 64)
 		if err != nil {
-			return models.Metrics{}, fmt.Errorf("failet to parse int number value: %w", err)
+			return models.Metrics{}, fmt.Errorf("failed to parse int number value: %w", err)
 		}
 		metric.Delta = &number
 
 	case models.Gauge:
 		number, err := strconv.ParseFloat(value, 64)
 		if err != nil {
-			return models.Metrics{}, fmt.Errorf("failet to parse number value: %w", err)
+			return models.Metrics{}, fmt.Errorf("failed to parse number value: %w", err)
 		}
 		metric.Value = &number
 
