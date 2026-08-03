@@ -24,5 +24,15 @@ func (h *MetricsHandler) Routes() []httpserver.Route {
 			Path:    "/update/{type}/{name}/{value}",
 			Handler: h.UpdateMetrics,
 		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/value/{type}/{name}",
+			Handler: h.GetMetric,
+		},
+		{
+			Method:  http.MethodGet,
+			Path:    "/",
+			Handler: h.GetMetricsList,
+		},
 	}
 }

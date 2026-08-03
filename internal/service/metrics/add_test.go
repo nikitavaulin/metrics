@@ -28,6 +28,19 @@ func (m *MockMetricsStorage) Update(name string, updated any) error {
 	return args.Error(0)
 }
 
+func (m *MockMetricsStorage) Get(name string) (any, error) {
+	args := m.Called(name)
+	return args.Get(0), args.Error(1)
+}
+
+func (m *MockMetricsStorage) GetList() (map[string]any, error) {
+	args := m.Called()
+	if data := args.Get(0); data != nil {
+		return data.(map[string]any), args.Error(1)
+	}
+	return nil, args.Error(1)
+}
+
 func TestMetricsService_Add(t *testing.T) {
 	tests := []struct {
 		name      string

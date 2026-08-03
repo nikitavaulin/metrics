@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/go-chi/chi/v5"
 	models "github.com/nikitavaulin/metrics/internal/model"
 )
 
@@ -14,8 +15,7 @@ func (h *MetricsHandler) UpdateMetrics(rw http.ResponseWriter, r *http.Request) 
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 		return
 	}
-
-	name := r.PathValue("name")
+	name := chi.URLParam(r, "name")
 	if name == "" {
 		rw.WriteHeader(http.StatusNotFound)
 		http.Error(rw, "metric name is empty", http.StatusNotFound)
@@ -31,12 +31,12 @@ func (h *MetricsHandler) UpdateMetrics(rw http.ResponseWriter, r *http.Request) 
 }
 
 func parseMetric(r *http.Request) (models.Metrics, error) {
-	mtype := r.PathValue("type")
+	mtype := chi.URLParam(r, "type")
 	if mtype == "" {
 		return models.Metrics{}, fmt.Errorf("metric type is empty")
 	}
 
-	value := r.PathValue("value")
+	value := chi.URLParam(r, "value")
 	if value == "" {
 		return models.Metrics{}, fmt.Errorf("value is empty")
 	}

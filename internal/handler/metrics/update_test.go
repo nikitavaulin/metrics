@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/go-chi/chi/v5"
 	models "github.com/nikitavaulin/metrics/internal/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -18,6 +19,19 @@ type MockMetricsService struct {
 func (m *MockMetricsService) Add(name string, metric models.Metrics) error {
 	args := m.Called(name, metric)
 	return args.Error(0)
+}
+
+func (m *MockMetricsService) Get(name string) (any, error) {
+	args := m.Called(name)
+	return args.Get(0), args.Error(1)
+}
+
+func (m *MockMetricsService) GetList() (map[string]any, error) {
+	args := m.Called()
+	if data := args.Get(0); data != nil {
+		return data.(map[string]any), args.Error(1)
+	}
+	return nil, args.Error(1)
 }
 
 func TestUpdateMetrics(t *testing.T) {
@@ -76,9 +90,9 @@ func TestUpdateMetrics(t *testing.T) {
 			expectedStatus: http.StatusNotFound,
 		},
 		{
-			name:           "empty value",
+			name:           "invalid value",
 			method:         http.MethodPost,
-			path:           "/update/counter/test_counter/",
+			path:           "/update/counter/test_counter/abc",
 			setupMock:      func(m *MockMetricsService) {},
 			expectedStatus: http.StatusBadRequest,
 		},
@@ -116,10 +130,13 @@ func TestUpdateMetrics(t *testing.T) {
 				metricsService: mockService,
 			}
 
+			r := chi.NewRouter()
+			r.Post("/update/{type}/{name}/{value}", handler.UpdateMetrics)
+
 			req := httptest.NewRequest(tt.method, tt.path, nil)
 			rr := httptest.NewRecorder()
 
-			handler.UpdateMetrics(rr, req)
+			r.ServeHTTP(rr, req)
 
 			assert.Equal(t, tt.expectedStatus, rr.Code)
 

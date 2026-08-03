@@ -3,23 +3,24 @@ package httpserver
 import (
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
 	serverconfig "github.com/nikitavaulin/metrics/internal/config/server"
 )
 
 type HTTPServer struct {
-	mux     *http.ServeMux
+	mux     *chi.Mux
 	address string
 }
 
 func New(config *serverconfig.HTTPServerConfig) *HTTPServer {
 	return &HTTPServer{
-		mux:     http.NewServeMux(),
+		mux:     chi.NewRouter(),
 		address: config.Address,
 	}
 }
 
 func (s *HTTPServer) RegisterRouter(router Router) {
-	s.mux.Handle("/", router)
+	s.mux.Mount("/", router)
 }
 
 func (s *HTTPServer) Run() error {

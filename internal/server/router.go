@@ -1,8 +1,9 @@
 package httpserver
 
 import (
-	"fmt"
 	"net/http"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type Route struct {
@@ -12,18 +13,17 @@ type Route struct {
 }
 
 type Router struct {
-	*http.ServeMux
+	*chi.Mux
 }
 
 func NewRouter() *Router {
 	return &Router{
-		ServeMux: http.NewServeMux(),
+		Mux: chi.NewRouter(),
 	}
 }
 
 func (r *Router) RegisterRoutes(routes []Route) {
 	for _, route := range routes {
-		pattern := fmt.Sprintf("%s %s", route.Method, route.Path)
-		r.Handle(pattern, route.Handler)
+		r.Method(route.Method, route.Path, route.Handler)
 	}
 }

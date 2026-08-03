@@ -1,8 +1,11 @@
 package memstorage
 
 import (
+	"errors"
 	"fmt"
 	"sync"
+
+	"github.com/nikitavaulin/metrics/internal/commonerrors"
 )
 
 type MemStorage struct {
@@ -19,9 +22,24 @@ func (s *MemStorage) Get(name string) (any, error) {
 		return nil, err
 	}
 	if metric == nil {
-		return nil, fmt.Errorf("metric with name=%s not found", name)
+		return nil, fmt.Errorf("metric with name=%s: %w", name, commonerrors.ErrNotFound)
 	}
 	return metric, nil
+}
+
+func (s *MemStorage) GetList() (map[string]any, error) {
+	metrics := make(map[string]any)
+	var err error
+	s.storage.Range(func(key, value any) bool {
+		name, ok := key.(string)
+		if !ok {
+			err = errors.New("failed to convert key to string")
+			return false
+		}
+		metrics[name] = value
+		return true
+	})
+	return metrics, err
 }
 
 func (s *MemStorage) GetOrNil(name string) (any, error) {
