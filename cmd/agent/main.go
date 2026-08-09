@@ -1,8 +1,21 @@
 package main
 
-import "github.com/nikitavaulin/metrics/internal/agent"
+import (
+	"fmt"
+	"log"
+
+	"github.com/nikitavaulin/metrics/internal/agent"
+	serverconfig "github.com/nikitavaulin/metrics/internal/config/server"
+)
 
 func main() {
-	agent := agent.New("http://localhost:8080") // TODO: refactor
+	parseFlags()
+
+	if err := serverconfig.ValidateServerAddress(flagServerAddr); err != nil {
+		log.Fatal(fmt.Errorf("invalid server address: %w", err))
+	}
+
+	agent := agent.New(flagServerAddr)
+	agent.SetIntervals(flagPollInterval, flagReportInterval)
 	agent.Run()
 }

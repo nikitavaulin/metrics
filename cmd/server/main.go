@@ -1,6 +1,8 @@
 package main
 
 import (
+	"log"
+
 	serverconfig "github.com/nikitavaulin/metrics/internal/config/server"
 	metricshandler "github.com/nikitavaulin/metrics/internal/handler/metrics"
 	"github.com/nikitavaulin/metrics/internal/repository/memstorage"
@@ -9,9 +11,11 @@ import (
 )
 
 func main() {
-	serverCfg, err := serverconfig.New()
+	parseFlags()
+
+	serverCfg, err := serverconfig.New(flagServerAddr)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	mStorage := memstorage.New()
@@ -25,6 +29,6 @@ func main() {
 	httpServer.RegisterRouter(*router)
 
 	if err := httpServer.Run(); err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 }

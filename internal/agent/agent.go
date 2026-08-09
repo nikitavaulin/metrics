@@ -9,10 +9,13 @@ import (
 )
 
 const (
-	pollInterval    time.Duration = 2 * time.Second
-	reportInterval  time.Duration = 10 * time.Second
-	randomValueName string        = "RandomValue"
-	pollCountName   string        = "PollCount"
+	randomValueName string = "RandomValue"
+	pollCountName   string = "PollCount"
+)
+
+var (
+	pollInterval   time.Duration = 2 * time.Second
+	reportInterval time.Duration = 10 * time.Second
 )
 
 type runtimeMetrics map[string]domain.Gauge
@@ -27,8 +30,13 @@ type Agent struct {
 
 func New(serverAddr string) *Agent {
 	return &Agent{
-		serverAddr: serverAddr,
+		serverAddr: "http://" + serverAddr,
 	}
+}
+
+func (a *Agent) SetIntervals(pollIvl, reportIvl time.Duration) {
+	pollInterval = pollIvl
+	reportInterval = reportIvl
 }
 
 func (a *Agent) Run() {
