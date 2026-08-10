@@ -16,6 +16,6 @@ func main() {
 	}
 
 	agent := agent.New(flagServerAddr)
-	agent.SetIntervals(flagPollInterval, flagReportInterval)
+	agent.SetSecondsIntervals(flagPollInterval, flagReportInterval)
 	agent.Run()
 }

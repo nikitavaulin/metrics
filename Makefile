@@ -32,3 +32,10 @@ autotest-3b:
 				-source-path=. \
 				-agent-binary-path=./agent.exe \
 				-binary-path=./server.exe
+
+autotest-4:
+		@./metricstest -test.v -test.run=^TestIteration4$ \
+				-agent-binary-path=./agent.exe \
+				-binary-path=./server.exe \
+				-server-port=8080 \
+				-source-path=.

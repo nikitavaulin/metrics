@@ -34,9 +34,9 @@ func New(serverAddr string) *Agent {
 	}
 }
 
-func (a *Agent) SetIntervals(pollIvl, reportIvl time.Duration) {
-	pollInterval = pollIvl
-	reportInterval = reportIvl
+func (a *Agent) SetSecondsIntervals(pollIvl, reportIvl int) {
+	pollInterval = time.Duration(pollIvl) * time.Second
+	reportInterval = time.Duration(reportIvl) * time.Second
 }
 
 func (a *Agent) Run() {

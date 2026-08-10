@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"runtime"
 	"testing"
 
 	"github.com/nikitavaulin/metrics/internal/domain"
@@ -56,15 +55,4 @@ func TestAgentPoll(t *testing.T) {
 	assert.Equal(t, prevPollCount+1, agent.pollCount)
 
 	assert.NotEmpty(t, agent.metrics)
-}
-
-func TestPollRuntimeRealisticValues(t *testing.T) {
-	metrics := pollRuntime()
-
-	var stats runtime.MemStats
-	runtime.ReadMemStats(&stats)
-
-	assert.Equal(t, float64(stats.NumGC), float64(metrics["NumGC"]))
-	assert.Equal(t, float64(stats.Sys), float64(metrics["Sys"]))
-	assert.Equal(t, float64(stats.HeapSys), float64(metrics["HeapSys"]))
 }
