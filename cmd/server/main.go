@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	serverconfig "github.com/nikitavaulin/metrics/internal/config/server"
@@ -11,11 +12,9 @@ import (
 )
 
 func main() {
-	parseFlags()
-
-	serverCfg, err := serverconfig.New(flagServerAddr)
+	serverCfg, err := serverconfig.New()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal(fmt.Errorf("failed to get server cfg: %w", err))
 	}
 
 	mStorage := memstorage.New()

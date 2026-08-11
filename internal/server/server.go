@@ -13,7 +13,7 @@ type HTTPServer struct {
 	address string
 }
 
-func New(config *serverconfig.HTTPServerConfig) *HTTPServer {
+func New(config *serverconfig.Config) *HTTPServer {
 	return &HTTPServer{
 		mux:     chi.NewRouter(),
 		address: config.Address,
