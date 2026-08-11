@@ -39,23 +39,17 @@ func (a *Agent) SetSecondsIntervals(pollIvl, reportIvl int) {
 }
 
 func (a *Agent) Run() {
-	var wg sync.WaitGroup
-
-	wg.Go(func() {
+	go func() {
 		for {
 			time.Sleep(a.pollInterval)
 			a.Poll()
 		}
-	})
+	}()
 
-	wg.Go(func() {
-		for {
-			time.Sleep(a.reportInterval)
-			if err := a.Report(); err != nil {
-				log.Printf("report error: %v", err)
-			}
+	for {
+		time.Sleep(a.reportInterval)
+		if err := a.Report(); err != nil {
+			log.Printf("report error: %v", err)
 		}
-	})
-
-	wg.Wait()
+	}
 }
