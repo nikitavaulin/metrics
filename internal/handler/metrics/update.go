@@ -17,7 +17,6 @@ func (h *MetricsHandler) UpdateMetrics(rw http.ResponseWriter, r *http.Request) 
 	}
 	name := chi.URLParam(r, "name")
 	if name == "" {
-		rw.WriteHeader(http.StatusNotFound)
 		http.Error(rw, "metric name is empty", http.StatusNotFound)
 		return
 	}

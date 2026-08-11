@@ -13,30 +13,29 @@ const (
 	pollCountName   string = "PollCount"
 )
 
-var (
-	pollInterval   time.Duration = 2 * time.Second
-	reportInterval time.Duration = 10 * time.Second
-)
-
 type runtimeMetrics map[string]domain.Gauge
 
 type Agent struct {
-	mu          sync.Mutex
-	metrics     runtimeMetrics
-	randomValue domain.Gauge
-	pollCount   domain.Counter
-	serverAddr  string
+	mu             sync.Mutex
+	metrics        runtimeMetrics
+	randomValue    domain.Gauge
+	pollCount      domain.Counter
+	serverAddr     string
+	pollInterval   time.Duration
+	reportInterval time.Duration
 }
 
 func New(serverAddr string) *Agent {
 	return &Agent{
-		serverAddr: "http://" + serverAddr,
+		serverAddr:     "http://" + serverAddr,
+		pollInterval:   2 * time.Second,
+		reportInterval: 10 * time.Second,
 	}
 }
 
 func (a *Agent) SetSecondsIntervals(pollIvl, reportIvl int) {
-	pollInterval = time.Duration(pollIvl) * time.Second
-	reportInterval = time.Duration(reportIvl) * time.Second
+	a.pollInterval = time.Duration(pollIvl) * time.Second
+	a.reportInterval = time.Duration(reportIvl) * time.Second
 }
 
 func (a *Agent) Run() {
@@ -44,14 +43,14 @@ func (a *Agent) Run() {
 
 	wg.Go(func() {
 		for {
-			time.Sleep(pollInterval)
+			time.Sleep(a.pollInterval)
 			a.Poll()
 		}
 	})
 
 	wg.Go(func() {
 		for {
-			time.Sleep(reportInterval)
+			time.Sleep(a.reportInterval)
 			if err := a.Report(); err != nil {
 				log.Printf("report error: %v", err)
 			}
