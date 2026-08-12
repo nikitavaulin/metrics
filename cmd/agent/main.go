@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -9,6 +10,9 @@ import (
 )
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	parseFlags()
 
 	if err := serverconfig.ValidateServerAddress(flagServerAddr); err != nil {
@@ -17,5 +21,5 @@ func main() {
 
 	agent := agent.New(flagServerAddr)
 	agent.SetSecondsIntervals(flagPollInterval, flagReportInterval)
-	agent.Run()
+	agent.Run(ctx)
 }
