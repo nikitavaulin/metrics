@@ -47,3 +47,11 @@ autotest-5:
 				-binary-path=./server.exe \
 				-server-port=5050 \
 				-source-path=.
+
+autotest-6:
+		@ADDRESS="localhost:5050" \
+		./metricstest -test.v -test.run=^TestIteration6$ \
+				-agent-binary-path=./agent.exe \
+				-binary-path=./server.exe \
+				-server-port=5050 \
+				-source-path=.

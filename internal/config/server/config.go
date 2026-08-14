@@ -8,10 +8,14 @@ import (
 	"github.com/nikitavaulin/metrics/internal/validation"
 )
 
-const defaultAddress = "localhost:8080"
+const (
+	defaultAddress = "localhost:8080"
+	defaultLogLvl  = "Info"
+)
 
 type Config struct {
-	Address string `env:"ADDRESS"`
+	Address  string `env:"ADDRESS"`
+	LogLevel string `env:"LOG_LEVEL"`
 }
 
 func New() (*Config, error) {
@@ -32,9 +36,13 @@ func New() (*Config, error) {
 func (cfg *Config) parseFlags() {
 	var flagCfg Config
 	flag.StringVar(&flagCfg.Address, "a", defaultAddress, "address to run a server")
+	flag.StringVar(&flagCfg.LogLevel, "l", defaultLogLvl, "logger level")
 	flag.Parse()
 
 	if cfg.Address == "" {
 		cfg.Address = flagCfg.Address
+	}
+	if cfg.LogLevel == "" {
+		cfg.LogLevel = flagCfg.LogLevel
 	}
 }
