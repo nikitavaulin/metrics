@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"log"
 	"sync"
 	"time"
@@ -39,18 +40,30 @@ func (a *Agent) SetSecondsIntervals(pollIvl, reportIvl int) {
 	a.reportInterval = time.Duration(reportIvl) * time.Second
 }
 
-func (a *Agent) Run() {
+func (a *Agent) Run(ctx context.Context) {
 	go func() {
+		ticker := time.NewTicker(a.pollInterval)
+		defer ticker.Stop()
 		for {
-			time.Sleep(a.pollInterval)
-			a.Poll()
+			select {
+			case <-ticker.C:
+				a.Poll()
+			case <-ctx.Done():
+				return
+			}
 		}
 	}()
 
+	ticker := time.NewTicker(a.reportInterval)
+	defer ticker.Stop()
 	for {
-		time.Sleep(a.reportInterval)
-		if err := a.Report(); err != nil {
-			log.Printf("report error: %v", err)
+		select {
+		case <-ticker.C:
+			if err := a.Report(); err != nil {
+				log.Printf("report error: %v", err)
+			}
+		case <-ctx.Done():
+			return
 		}
 	}
 }
