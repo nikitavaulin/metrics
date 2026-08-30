@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -10,10 +12,82 @@ import (
 )
 
 const (
-	contentType string = "text/plain"
+	contentType     string = "text/plain"
+	contentTypeJSON string = "application/json"
 )
 
 func (a *Agent) Report() error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	url := fmt.Sprintf("%s/update/", a.serverAddr)
+
+	for name, value := range a.metrics {
+		val := float64(value)
+
+		metric := models.Metrics{
+			ID:    name,
+			Value: &val,
+			MType: models.Gauge,
+		}
+
+		if err := a.sendJSONMetric(url, metric); err != nil {
+			return fmt.Errorf("failed to send metric %q: %w", name, err)
+		}
+	}
+
+	randomValue := float64(a.randomValue)
+	randomMetric := models.Metrics{
+		ID:    randomValueName,
+		Value: &randomValue,
+		MType: models.Gauge,
+	}
+
+	if err := a.sendJSONMetric(url, randomMetric); err != nil {
+		return fmt.Errorf("failed to send random value metric: %w", err)
+	}
+
+	pollCount := int64(a.pollCount)
+	pollCountMetric := models.Metrics{
+		ID:    pollCountName,
+		Delta: &pollCount,
+		MType: models.Counter,
+	}
+
+	if err := a.sendJSONMetric(url, pollCountMetric); err != nil {
+		return fmt.Errorf("failed to send poll count metric: %w", err)
+	}
+
+	return nil
+}
+
+func (a *Agent) sendJSONMetric(url string, metric models.Metrics) error {
+	body, err := json.Marshal(&metric)
+	if err != nil {
+		return fmt.Errorf("failed to marshal metric: %w", err)
+	}
+
+	resp, err := http.Post(url, contentTypeJSON, bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("failed to POST metric: %w", err)
+	}
+	defer resp.Body.Close()
+
+	logResponse(resp)
+
+	// if resp.StatusCode != http.StatusOK {
+	// 	responseBody, _ := io.ReadAll(resp.Body)
+	// 	return fmt.Errorf(
+	// 		"server returned status %s: %s",
+	// 		resp.Status,
+	// 		string(responseBody),
+	// 	)
+	// }
+
+	return nil
+}
+
+func (a *Agent) ReportOld() error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 

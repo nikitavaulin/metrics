@@ -34,6 +34,11 @@ func (m *MockMetricsService) GetList() (map[string]any, error) {
 	return nil, args.Error(1)
 }
 
+func (ms *MockMetricsService) SetMValueFromStorage(m *models.Metrics) error {
+	args := ms.Called()
+	return args.Error(0)
+}
+
 func TestUpdateMetrics(t *testing.T) {
 	tests := []struct {
 		name           string

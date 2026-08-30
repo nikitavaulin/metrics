@@ -1,6 +1,7 @@
 package httpserver
 
 import (
+	"encoding/json"
 	"net/http"
 )
 
@@ -28,4 +29,20 @@ func (rw *WriterResponse) Write(b []byte) (int, error) {
 func (rw *WriterResponse) WriteHeader(statusCode int) {
 	rw.ResponseWriter.WriteHeader(statusCode)
 	rw.Status = statusCode
+}
+
+func JSONResponse(rw http.ResponseWriter, data any, statusCode int) {
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(statusCode)
+	json.NewEncoder(rw).Encode(&data)
+}
+
+func ErrorResponse(rw http.ResponseWriter, err error, msg string, statusCode int) {
+	resp := map[string]string{
+		"error":   err.Error(),
+		"message": msg,
+	}
+	rw.Header().Set("Content-Type", "application/json")
+	rw.WriteHeader(statusCode)
+	json.NewEncoder(rw).Encode(&resp)
 }
