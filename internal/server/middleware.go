@@ -2,8 +2,10 @@ package httpserver
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
+	"github.com/nikitavaulin/metrics/internal/gzipcompress"
 	"github.com/nikitavaulin/metrics/internal/logger"
 	"go.uber.org/zap"
 )
@@ -31,4 +33,29 @@ func LogRequest(h http.Handler) http.Handler {
 		)
 	}
 	return http.HandlerFunc(logFunc)
+}
+
+func GzipCompress(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		const gzipName = "gzip"
+		originalRW := w
+
+		if strings.Contains(r.Header.Get("Accept-Encoding"), gzipName) {
+			gzipRW := gzipcompress.NewWriter(w)
+			originalRW = gzipRW
+			defer gzipRW.Close()
+		}
+
+		if r.Header.Get("Content-Encoding") == gzipName {
+			gzipR, err := gzipcompress.NewReader(r.Body)
+			if err != nil {
+				ErrorResponse(w, err, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			r.Body = gzipR
+			defer gzipR.Close()
+		}
+
+		next.ServeHTTP(originalRW, r)
+	})
 }

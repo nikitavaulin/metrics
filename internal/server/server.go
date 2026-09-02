@@ -24,5 +24,5 @@ func (s *HTTPServer) RegisterRouter(router Router) {
 }
 
 func (s *HTTPServer) Run() error {
-	return http.ListenAndServe(s.address, LogRequest(s.mux))
+	return http.ListenAndServe(s.address, LogRequest(GzipCompress(s.mux)))
 }

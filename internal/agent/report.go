@@ -67,22 +67,22 @@ func (a *Agent) sendJSONMetric(url string, metric models.Metrics) error {
 		return fmt.Errorf("failed to marshal metric: %w", err)
 	}
 
-	resp, err := http.Post(url, contentTypeJSON, bytes.NewReader(body))
+	compressedBody, err := compress(body)
+
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(compressedBody))
+	if err != nil {
+		return fmt.Errorf("failed to create post request: %w", err)
+	}
+	req.Header.Add("Content-Type", contentTypeJSON)
+	req.Header.Add("Content-Encoding", "gzip")
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to POST metric: %w", err)
 	}
 	defer resp.Body.Close()
 
 	logResponse(resp)
-
-	// if resp.StatusCode != http.StatusOK {
-	// 	responseBody, _ := io.ReadAll(resp.Body)
-	// 	return fmt.Errorf(
-	// 		"server returned status %s: %s",
-	// 		resp.Status,
-	// 		string(responseBody),
-	// 	)
-	// }
 
 	return nil
 }
