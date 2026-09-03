@@ -13,8 +13,8 @@ func (h *MetricsHandler) GetMetricsList(rw http.ResponseWriter, r *http.Request)
 	}
 	html := getMetricsHTML(metrics)
 	rw.Header().Set("Content-Type", "text/html")
-	rw.Write([]byte(html))
 	rw.WriteHeader(http.StatusOK)
+	rw.Write([]byte(html))
 }
 
 func getMetricsHTML(metrics map[string]any) string {

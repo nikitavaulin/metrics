@@ -63,3 +63,11 @@ autotest-7:
 				-binary-path=./server.exe \
 				-server-port=8080 \
 				-source-path=.
+
+autotest-8:
+		@ADDRESS="localhost:8080" \
+		./metricstest -test.v -test.run=^TestIteration8$ \
+				-agent-binary-path=./agent.exe \
+				-binary-path=./server.exe \
+				-server-port=8080 \
+				-source-path=.
