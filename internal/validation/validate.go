@@ -18,7 +18,7 @@ func ValidateServerAddress(addr string) error {
 
 	port, err := strconv.Atoi(parts[1])
 	if err != nil {
-		return fmt.Errorf("failed to convert port: %w\n", err)
+		return fmt.Errorf("failed to convert port: %w", err)
 	}
 
 	if err := ValidateIntInBounds(port, 1, 65535); err != nil {

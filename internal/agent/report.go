@@ -68,6 +68,9 @@ func (a *Agent) sendJSONMetric(url string, metric models.Metrics) error {
 	}
 
 	compressedBody, err := compress(body)
+	if err != nil {
+		return fmt.Errorf("failed to compress json metrics: %w", err)
+	}
 
 	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(compressedBody))
 	if err != nil {
@@ -126,7 +129,7 @@ func (a *Agent) getPath(mtype, name, value string) string {
 
 func logResponse(resp *http.Response) {
 	if resp != nil {
-		var errMsg string = "null"
+		errMsg := "null"
 		if resp.StatusCode != http.StatusOK {
 			body, err := io.ReadAll(resp.Body)
 			if err != nil {

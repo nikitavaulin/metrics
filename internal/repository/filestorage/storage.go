@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-
-	"github.com/nikitavaulin/metrics/internal/validation"
 )
 
 type FileStorage struct {
@@ -16,10 +14,6 @@ func New() *FileStorage {
 }
 
 func (fs *FileStorage) SaveToJSON(filename string, data any) error {
-	if err := validation.ValidateFileExt(filename, ".json"); err != nil {
-		return err
-	}
-
 	jsonData, err := json.MarshalIndent(data, "", "    ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal data: %w", err)
