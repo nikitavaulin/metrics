@@ -16,22 +16,27 @@ type MockMetricsService struct {
 	mock.Mock
 }
 
-func (m *MockMetricsService) Add(name string, metric models.Metrics) error {
-	args := m.Called(name, metric)
+func (ms *MockMetricsService) Add(name string, metric models.Metrics) error {
+	args := ms.Called(name, metric)
 	return args.Error(0)
 }
 
-func (m *MockMetricsService) Get(name string) (any, error) {
-	args := m.Called(name)
+func (ms *MockMetricsService) Get(name string) (any, error) {
+	args := ms.Called(name)
 	return args.Get(0), args.Error(1)
 }
 
-func (m *MockMetricsService) GetList() (map[string]any, error) {
-	args := m.Called()
+func (ms *MockMetricsService) GetList() (map[string]any, error) {
+	args := ms.Called()
 	if data := args.Get(0); data != nil {
 		return data.(map[string]any), args.Error(1)
 	}
 	return nil, args.Error(1)
+}
+
+func (ms *MockMetricsService) SetMValueFromStorage(m *models.Metrics) error {
+	args := ms.Called()
+	return args.Error(0)
 }
 
 func TestUpdateMetrics(t *testing.T) {

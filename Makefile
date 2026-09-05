@@ -39,3 +39,44 @@ autotest-4:
 				-binary-path=./server.exe \
 				-server-port=8080 \
 				-source-path=.
+
+autotest-5:
+		@ADDRESS="localhost:5050" \
+		./metricstest -test.v -test.run=^TestIteration5$ \
+				-agent-binary-path=./agent.exe \
+				-binary-path=./server.exe \
+				-server-port=5050 \
+				-source-path=.
+
+autotest-6:
+		@ADDRESS="localhost:5050" \
+		./metricstest -test.v -test.run=^TestIteration6$ \
+				-agent-binary-path=./agent.exe \
+				-binary-path=./server.exe \
+				-server-port=5050 \
+				-source-path=.
+
+autotest-7:
+		@ADDRESS="localhost:8080" \
+		./metricstest -test.v -test.run=^TestIteration7$ \
+				-agent-binary-path=./agent.exe \
+				-binary-path=./server.exe \
+				-server-port=8080 \
+				-source-path=.
+
+autotest-8:
+		@ADDRESS="localhost:8080" \
+		./metricstest -test.v -test.run=^TestIteration8$ \
+				-agent-binary-path=./agent.exe \
+				-binary-path=./server.exe \
+				-server-port=8080 \
+				-source-path=.
+
+autotest-9:
+		@ADDRESS="localhost:8080" \
+		./metricstest -test.v -test.run=^TestIteration9$ \
+				-agent-binary-path=./agent.exe \
+				-binary-path=./server.exe \
+				-file-storage-path=./metrics_temp.json \
+				-server-port=8080 \
+				-source-path=.

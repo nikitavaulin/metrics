@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	agentconfig "github.com/nikitavaulin/metrics/internal/config/agent"
 	"github.com/nikitavaulin/metrics/internal/domain"
 )
 
@@ -26,11 +27,11 @@ type Agent struct {
 	reportInterval time.Duration
 }
 
-func New(serverAddr string) *Agent {
+func New(cfg *agentconfig.Config) *Agent {
 	return &Agent{
-		serverAddr:     "http://" + serverAddr,
-		pollInterval:   2 * time.Second,
-		reportInterval: 10 * time.Second,
+		serverAddr:     "http://" + cfg.TargetServerAddr,
+		pollInterval:   time.Duration(cfg.PollInterval) * time.Second,
+		reportInterval: time.Duration(cfg.ReportInterval) * time.Second,
 	}
 }
 

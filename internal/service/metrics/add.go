@@ -4,18 +4,7 @@ import (
 	"fmt"
 
 	models "github.com/nikitavaulin/metrics/internal/model"
-	"github.com/nikitavaulin/metrics/internal/repository"
 )
-
-type MetricsService struct {
-	storage repository.Storage
-}
-
-func New(storage repository.Storage) *MetricsService {
-	return &MetricsService{
-		storage: storage,
-	}
-}
 
 func (s *MetricsService) Add(name string, metric models.Metrics) error {
 	if err := validateMetric(name, metric); err != nil {
@@ -34,8 +23,6 @@ func (s *MetricsService) Add(name string, metric models.Metrics) error {
 		}
 		return s.storage.Add(name, *metric.Value)
 	}
-
-	// непонятно, что делать с ID и хэшем
 
 	switch metric.MType {
 	case models.Gauge:

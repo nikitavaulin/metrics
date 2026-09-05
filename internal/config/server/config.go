@@ -1,38 +1,73 @@
 package serverconfig
 
 import (
+	"flag"
 	"fmt"
-	"strconv"
-	"strings"
+
+	"github.com/caarlos0/env/v6"
+	"github.com/nikitavaulin/metrics/internal/validation"
 )
 
-type HTTPServerConfig struct {
-	Address string
+const (
+	defaultAddress         = "localhost:8080"
+	defaultLogLvl          = "Info"
+	defaultStoreInterval   = 300
+	defaultFileStoragePath = "metrics.json"
+	defaultIsNeedRestore   = false
+)
+
+type Config struct {
+	Address         string `env:"ADDRESS"`
+	LogLevel        string `env:"LOG_LEVEL"`
+	StoreInterval   *int   `env:"STORE_INTERVAL"`
+	FileStoragePath string `env:"FILE_STORAGE_PATH"`
+	IsNeedRestore   *bool  `env:"RESTORE"`
 }
 
-func New(addr string) (*HTTPServerConfig, error) {
-	if err := ValidateServerAddress(addr); err != nil {
+func New() (*Config, error) {
+	var cfg Config
+	if err := env.Parse(&cfg); err != nil {
+		return nil, fmt.Errorf("failed to parse env: %w", err)
+	}
+
+	cfg.parseFlags()
+
+	if err := validation.ValidateServerAddress(cfg.Address); err != nil {
 		return nil, fmt.Errorf("invalid server address: %w", err)
 	}
-	return &HTTPServerConfig{
-		Address: addr,
-	}, nil
+
+	return &cfg, nil
 }
 
-func ValidateServerAddress(addr string) error {
-	parts := strings.Split(addr, ":")
-	if len(parts) != 2 {
-		return fmt.Errorf("invalid address struct got: %s, want: %s", addr, "<addr>:<port>")
-	}
+func (cfg *Config) parseFlags() {
+	var (
+		address         string
+		logLevel        string
+		storeInterval   int
+		fileStoragePath string
+		isNeedRestore   bool
+	)
+	flag.StringVar(&address, "a", defaultAddress, "address to run a server")
+	flag.StringVar(&logLevel, "l", defaultLogLvl, "logger level")
+	flag.IntVar(&storeInterval, "i", defaultStoreInterval, "metrics store interval (int seconds)")
+	flag.StringVar(&fileStoragePath, "f", defaultFileStoragePath, "file storage destination (path)")
+	flag.BoolVar(&isNeedRestore, "r", defaultIsNeedRestore, "restore metrics after start")
 
-	port, err := strconv.Atoi(parts[1])
-	if err != nil {
-		return fmt.Errorf("failed to convert port: %w\n", err)
-	}
+	flag.Parse()
 
-	if !(port >= 1 && port <= 65535) {
-		return fmt.Errorf("invalid port value. got: %d, want: %d..%d", port, 1, 65535)
+	if cfg.Address == "" {
+		cfg.Address = address
 	}
-
-	return nil
+	if cfg.LogLevel == "" {
+		cfg.LogLevel = logLevel
+	}
+	if cfg.StoreInterval == nil {
+		cfg.StoreInterval = &storeInterval
+	}
+	if cfg.FileStoragePath == "" {
+		cfg.FileStoragePath = fileStoragePath
+	}
+	if cfg.IsNeedRestore == nil {
+		cfg.IsNeedRestore = &isNeedRestore
+	}
 }
