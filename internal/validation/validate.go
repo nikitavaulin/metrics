@@ -3,6 +3,7 @@ package validation
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -66,6 +67,14 @@ func ValidateMetricType(mtype string) error {
 	}
 	if mtype != models.Counter && mtype != models.Gauge {
 		return fmt.Errorf("unknown metric type: %s", mtype)
+	}
+	return nil
+}
+
+func ValidateFileExt(fname, extWant string) error {
+	ext := filepath.Ext(fname)
+	if ext != extWant {
+		return fmt.Errorf("missmatch of file extention: got: %s, want: %s", ext, extWant)
 	}
 	return nil
 }

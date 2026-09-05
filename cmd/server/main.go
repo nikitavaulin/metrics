@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 
 	serverconfig "github.com/nikitavaulin/metrics/internal/config/server"
 	metricshandler "github.com/nikitavaulin/metrics/internal/handler/metrics"
 	"github.com/nikitavaulin/metrics/internal/logger"
+	"github.com/nikitavaulin/metrics/internal/repository/filestorage"
 	"github.com/nikitavaulin/metrics/internal/repository/memstorage"
 	httpserver "github.com/nikitavaulin/metrics/internal/server"
 	metricsservice "github.com/nikitavaulin/metrics/internal/service/metrics"
@@ -14,6 +16,9 @@ import (
 )
 
 func main() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	serverCfg, err := serverconfig.New()
 	if err != nil {
 		log.Fatal(fmt.Errorf("failed to get server cfg: %w", err))
@@ -23,9 +28,16 @@ func main() {
 		log.Fatal(fmt.Errorf("failed to initialize logger: %w", err))
 	}
 
+	fStorage := filestorage.New()
+
 	mStorage := memstorage.New()
-	mService := metricsservice.New(mStorage)
+	mService := metricsservice.New(mStorage, fStorage)
 	mHandler := metricshandler.New(mService)
+
+	if *serverCfg.IsNeedRestore {
+		mService.LoadMetrics(serverCfg.FileStoragePath)
+	}
+	mService.SaveToFile(ctx, serverCfg.FileStoragePath, *serverCfg.StoreInterval)
 
 	router := httpserver.NewRouter()
 	router.RegisterRoutes(mHandler.Routes())
