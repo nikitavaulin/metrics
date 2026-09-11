@@ -11,7 +11,7 @@ import (
 )
 
 func (s *MetricsService) SaveToFile(ctx context.Context, filename string, intervalSec int) {
-	if intervalSec <= 0 {
+	if intervalSec < 0 {
 		logger.Log.Error(
 			"invalid metrics save interval",
 			zap.Int("interval_sec", intervalSec),
@@ -22,21 +22,36 @@ func (s *MetricsService) SaveToFile(ctx context.Context, filename string, interv
 	interval := time.Duration(intervalSec) * time.Second
 
 	go func() {
+		if intervalSec == 0 {
+			for {
+				select {
+				case <-s.saveToFileTrigger:
+					s.saveToFileLogged(filename)
+				case <-ctx.Done():
+					return
+				}
+			}
+		}
+
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 		for {
 			select {
 			case <-ticker.C:
-				if err := s.saveToFile(filename); err != nil {
-					logger.Log.Error("failed to save metrics", zap.Error(err))
-					return
-				}
-				logger.Log.Info("current metrics have been saved to file", zap.String("file", filename))
+				s.saveToFileLogged(filename)
 			case <-ctx.Done():
 				return
 			}
 		}
 	}()
+}
+
+func (s *MetricsService) saveToFileLogged(filename string) {
+	if err := s.saveToFile(filename); err != nil {
+		logger.Log.Error("failed to save metrics", zap.Error(err))
+	} else {
+		logger.Log.Info("current metrics have been saved to file", zap.String("file", filename))
+	}
 }
 
 func (s *MetricsService) saveToFile(filename string) error {

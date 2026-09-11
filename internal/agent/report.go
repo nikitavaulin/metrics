@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"time"
 
 	models "github.com/nikitavaulin/metrics/internal/model"
 )
@@ -20,6 +21,7 @@ func (a *Agent) Report() error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
+	client := &http.Client{Timeout: 5 * time.Second}
 	url := fmt.Sprintf("%s/update/", a.serverAddr)
 
 	for name, value := range a.metrics {
@@ -31,7 +33,7 @@ func (a *Agent) Report() error {
 			MType: models.Gauge,
 		}
 
-		if err := a.sendJSONMetric(url, metric); err != nil {
+		if err := a.sendJSONMetric(url, metric, client); err != nil {
 			return fmt.Errorf("failed to send metric %q: %w", name, err)
 		}
 	}
@@ -43,7 +45,7 @@ func (a *Agent) Report() error {
 		MType: models.Gauge,
 	}
 
-	if err := a.sendJSONMetric(url, randomMetric); err != nil {
+	if err := a.sendJSONMetric(url, randomMetric, client); err != nil {
 		return fmt.Errorf("failed to send random value metric: %w", err)
 	}
 
@@ -54,14 +56,14 @@ func (a *Agent) Report() error {
 		MType: models.Counter,
 	}
 
-	if err := a.sendJSONMetric(url, pollCountMetric); err != nil {
+	if err := a.sendJSONMetric(url, pollCountMetric, client); err != nil {
 		return fmt.Errorf("failed to send poll count metric: %w", err)
 	}
 
 	return nil
 }
 
-func (a *Agent) sendJSONMetric(url string, metric models.Metrics) error {
+func (a *Agent) sendJSONMetric(url string, metric models.Metrics, client *http.Client) error {
 	body, err := json.Marshal(&metric)
 	if err != nil {
 		return fmt.Errorf("failed to marshal metric: %w", err)
@@ -79,46 +81,13 @@ func (a *Agent) sendJSONMetric(url string, metric models.Metrics) error {
 	req.Header.Add("Content-Type", contentTypeJSON)
 	req.Header.Add("Content-Encoding", "gzip")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to POST metric: %w", err)
 	}
 	defer resp.Body.Close()
 
 	logResponse(resp)
-
-	return nil
-}
-
-func (a *Agent) ReportOld() error {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-
-	// runtime
-	for name, value := range a.metrics {
-		url := a.getPath(models.Gauge, name, fmt.Sprint(value))
-		resp, err := http.Post(url, contentType, nil)
-		logResponse(resp)
-		if err != nil {
-			return fmt.Errorf("failed to POST metric: %w", err)
-		}
-	}
-
-	// random
-	url := a.getPath(models.Gauge, randomValueName, fmt.Sprint(a.randomValue))
-	resp, err := http.Post(url, contentType, nil)
-	logResponse(resp)
-	if err != nil {
-		return fmt.Errorf("failed to POST random value metric: %w", err)
-	}
-
-	// counter
-	url = a.getPath(models.Counter, pollCountName, fmt.Sprint(a.pollCount))
-	resp, err = http.Post(url, contentType, nil)
-	logResponse(resp)
-	if err != nil {
-		return fmt.Errorf("failed to POST poll count: %w", err)
-	}
 
 	return nil
 }

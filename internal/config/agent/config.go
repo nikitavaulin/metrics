@@ -16,8 +16,8 @@ const (
 
 type Config struct {
 	TargetServerAddr string `env:"ADDRESS"`
-	ReportInterval   int    `env:"REPORT_INTERVAL"`
-	PollInterval     int    `env:"POLL_INTERVAL"`
+	ReportInterval   *int   `env:"REPORT_INTERVAL"`
+	PollInterval     *int   `env:"POLL_INTERVAL"`
 }
 
 func New() (*Config, error) {
@@ -36,19 +36,24 @@ func New() (*Config, error) {
 }
 
 func (cfg *Config) parseFlags() {
-	var flagCfg Config
-	flag.StringVar(&flagCfg.TargetServerAddr, "a", defaultTargetServerAddr, "address to run a server")
-	flag.IntVar(&flagCfg.ReportInterval, "r", defaultReportInterval, "report interval in seconds")
-	flag.IntVar(&flagCfg.PollInterval, "p", defaultPollInterval, "poll interval in seconds")
+	var (
+		targetServerAddr string
+		reportInterval   int
+		pollInterval     int
+	)
+
+	flag.StringVar(&targetServerAddr, "a", defaultTargetServerAddr, "address to run a server")
+	flag.IntVar(&reportInterval, "r", defaultReportInterval, "report interval in seconds")
+	flag.IntVar(&pollInterval, "p", defaultPollInterval, "poll interval in seconds")
 	flag.Parse()
 
 	if cfg.TargetServerAddr == "" {
-		cfg.TargetServerAddr = flagCfg.TargetServerAddr
+		cfg.TargetServerAddr = targetServerAddr
 	}
-	if cfg.ReportInterval == 0 {
-		cfg.ReportInterval = flagCfg.ReportInterval
+	if cfg.ReportInterval == nil {
+		cfg.ReportInterval = &reportInterval
 	}
-	if cfg.PollInterval == 0 {
-		cfg.PollInterval = flagCfg.PollInterval
+	if cfg.PollInterval == nil {
+		cfg.PollInterval = &pollInterval
 	}
 }

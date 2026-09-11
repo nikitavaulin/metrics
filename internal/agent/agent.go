@@ -30,8 +30,8 @@ type Agent struct {
 func New(cfg *agentconfig.Config) *Agent {
 	return &Agent{
 		serverAddr:     "http://" + cfg.TargetServerAddr,
-		pollInterval:   time.Duration(cfg.PollInterval) * time.Second,
-		reportInterval: time.Duration(cfg.ReportInterval) * time.Second,
+		pollInterval:   time.Duration(*cfg.PollInterval) * time.Second,
+		reportInterval: time.Duration(*cfg.ReportInterval) * time.Second,
 	}
 }
 
