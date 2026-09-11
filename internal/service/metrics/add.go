@@ -25,6 +25,9 @@ func (s *MetricsService) Add(name string, metric models.Metrics) error {
 		} else {
 			updateErr = s.storage.Add(name, *metric.Value)
 		}
+		if updateErr != nil {
+			return updateErr
+		}
 		s.notifySave()
 		return nil
 	}
