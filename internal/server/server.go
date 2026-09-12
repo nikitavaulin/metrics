@@ -1,7 +1,6 @@
 package httpserver
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -13,7 +12,7 @@ type HTTPServer struct {
 	address string
 }
 
-func New(config *serverconfig.HTTPServerConfig) *HTTPServer {
+func New(config *serverconfig.Config) *HTTPServer {
 	return &HTTPServer{
 		mux:     chi.NewRouter(),
 		address: config.Address,
@@ -25,6 +24,5 @@ func (s *HTTPServer) RegisterRouter(router Router) {
 }
 
 func (s *HTTPServer) Run() error {
-	log.Printf("Running server on %s...\n", s.address)
-	return http.ListenAndServe(s.address, s.mux)
+	return http.ListenAndServe(s.address, LogRequest(GzipCompress(s.mux)))
 }

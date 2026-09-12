@@ -239,7 +239,7 @@ func TestMetricsService_Add(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockStorage := new(MockMetricsStorage)
 			tt.setupMock(mockStorage)
-			s := New(mockStorage)
+			s := New(mockStorage, nil)
 
 			gotErr := s.Add(tt.mName, tt.metric)
 			if tt.wantErr {

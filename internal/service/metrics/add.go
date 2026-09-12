@@ -4,18 +4,7 @@ import (
 	"fmt"
 
 	models "github.com/nikitavaulin/metrics/internal/model"
-	"github.com/nikitavaulin/metrics/internal/repository"
 )
-
-type MetricsService struct {
-	storage repository.Storage
-}
-
-func New(storage repository.Storage) *MetricsService {
-	return &MetricsService{
-		storage: storage,
-	}
-}
 
 func (s *MetricsService) Add(name string, metric models.Metrics) error {
 	if err := validateMetric(name, metric); err != nil {
@@ -27,19 +16,25 @@ func (s *MetricsService) Add(name string, metric models.Metrics) error {
 		return fmt.Errorf("failed to get previous metric value: %w", err)
 	}
 
+	var updateErr error
+
 	// новое значение
 	if prev == nil {
 		if metric.MType == models.Counter {
-			return s.storage.Add(name, *metric.Delta)
+			updateErr = s.storage.Add(name, *metric.Delta)
+		} else {
+			updateErr = s.storage.Add(name, *metric.Value)
 		}
-		return s.storage.Add(name, *metric.Value)
+		if updateErr != nil {
+			return updateErr
+		}
+		s.notifySave()
+		return nil
 	}
-
-	// непонятно, что делать с ID и хэшем
 
 	switch metric.MType {
 	case models.Gauge:
-		return s.storage.Update(name, *metric.Value)
+		updateErr = s.storage.Update(name, *metric.Value)
 
 	case models.Counter:
 		prevValue, ok := prev.(int64)
@@ -47,10 +42,15 @@ func (s *MetricsService) Add(name string, metric models.Metrics) error {
 			return fmt.Errorf("failed to convert previous metric value to int")
 		}
 		counter := prevValue + *metric.Delta
-		return s.storage.Update(name, counter)
+		updateErr = s.storage.Update(name, counter)
+	default:
+		return fmt.Errorf("metricsservice: unknown mtype")
 	}
-
-	return fmt.Errorf("metricsservice: unknown mtype")
+	if updateErr != nil {
+		return updateErr
+	}
+	s.notifySave()
+	return nil
 }
 
 func validateMetric(name string, metric models.Metrics) error {
