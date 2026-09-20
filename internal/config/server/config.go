@@ -14,14 +14,17 @@ const (
 	defaultStoreInterval   = 300
 	defaultFileStoragePath = "metrics.json"
 	defaultIsNeedRestore   = false
+
+	emptyDbConnStr = "empty"
 )
 
 type Config struct {
-	Address         string `env:"ADDRESS"`
-	LogLevel        string `env:"LOG_LEVEL"`
-	StoreInterval   *int   `env:"STORE_INTERVAL"`
-	FileStoragePath string `env:"FILE_STORAGE_PATH"`
-	IsNeedRestore   *bool  `env:"RESTORE"`
+	Address            string `env:"ADDRESS"`
+	LogLevel           string `env:"LOG_LEVEL"`
+	StoreInterval      *int   `env:"STORE_INTERVAL"`
+	FileStoragePath    string `env:"FILE_STORAGE_PATH"`
+	IsNeedRestore      *bool  `env:"RESTORE"`
+	DbConnectionString string `env:"DATABASE_DSN"`
 }
 
 func New() (*Config, error) {
@@ -36,6 +39,10 @@ func New() (*Config, error) {
 		return nil, fmt.Errorf("invalid server address: %w", err)
 	}
 
+	if cfg.DbConnectionString == emptyDbConnStr {
+		return nil, fmt.Errorf("db connestion string is empty")
+	}
+
 	return &cfg, nil
 }
 
@@ -46,12 +53,14 @@ func (cfg *Config) parseFlags() {
 		storeInterval   int
 		fileStoragePath string
 		isNeedRestore   bool
+		dbConnString    string
 	)
 	flag.StringVar(&address, "a", defaultAddress, "address to run a server")
 	flag.StringVar(&logLevel, "l", defaultLogLvl, "logger level")
 	flag.IntVar(&storeInterval, "i", defaultStoreInterval, "metrics store interval (int seconds)")
 	flag.StringVar(&fileStoragePath, "f", defaultFileStoragePath, "file storage destination (path)")
 	flag.BoolVar(&isNeedRestore, "r", defaultIsNeedRestore, "restore metrics after start")
+	flag.StringVar(&dbConnString, "d", emptyDbConnStr, "postgres db connection string")
 
 	flag.Parse()
 
@@ -69,5 +78,8 @@ func (cfg *Config) parseFlags() {
 	}
 	if cfg.IsNeedRestore == nil {
 		cfg.IsNeedRestore = &isNeedRestore
+	}
+	if cfg.DbConnectionString == "" {
+		cfg.DbConnectionString = dbConnString
 	}
 }
