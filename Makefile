@@ -91,15 +91,15 @@ autotest-10a: build
 		./metricstest -test.v -test.run=^TestIteration10A$ \
 				-agent-binary-path=./agent.exe \
 				-binary-path=./server.exe \
-				-database-dsn='postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable' \
+				-database-dsn='$(DATABASE_DSN)' \
 				-server-port=8080 \
 				-source-path=.
 
 autotest-10b: build
 		@ADDRESS="localhost:8080" \
-		./metricstest -test.v -test.run=^TestIteration10b$ \
+		./metricstest -test.v -test.run=^TestIteration10B$ \
 				-agent-binary-path=./agent.exe \
 				-binary-path=./server.exe \
-				-database-dsn='postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable' \
+				-database-dsn='$(DATABASE_DSN)' \
 				-server-port=8080 \
 				-source-path=.
