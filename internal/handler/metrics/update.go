@@ -26,11 +26,11 @@ func (h *MetricsHandler) UpdateMetricByJSON(rw http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if err := h.metricsService.Add(metric.ID, metric); err != nil {
+	if err := h.metricsService.Add(r.Context(), metric.ID, metric); err != nil {
 		httpserver.ErrorResponse(rw, err, "unexpected error", http.StatusInternalServerError)
 		return
 	}
 
-	h.metricsService.SetMValueFromStorage(&metric)
+	h.metricsService.SetMValueFromStorage(r.Context(), &metric)
 	httpserver.JSONResponse(rw, &metric, http.StatusOK)
 }

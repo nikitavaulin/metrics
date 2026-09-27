@@ -1,21 +1,22 @@
 package metricsservice
 
 import (
+	"context"
 	"fmt"
 
 	models "github.com/nikitavaulin/metrics/internal/model"
 )
 
-func (s *MetricsService) Get(name string) (any, error) {
-	return s.storage.Get(name)
+func (s *MetricsService) Get(ctx context.Context, name string) (any, error) {
+	return s.storage.Get(ctx, name)
 }
 
-func (s *MetricsService) GetList() (map[string]any, error) {
-	return s.storage.GetList()
+func (s *MetricsService) GetList(ctx context.Context) (map[string]any, error) {
+	return s.storage.GetList(ctx)
 }
 
-func (s *MetricsService) SetMValueFromStorage(m *models.Metrics) error {
-	value, err := s.Get(m.ID)
+func (s *MetricsService) SetMValueFromStorage(ctx context.Context, m *models.Metrics) error {
+	value, err := s.Get(ctx, m.ID)
 	if err != nil {
 		return err
 	}

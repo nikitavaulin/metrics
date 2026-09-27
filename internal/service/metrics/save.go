@@ -26,7 +26,7 @@ func (s *MetricsService) SaveToFile(ctx context.Context, filename string, interv
 			for {
 				select {
 				case <-s.saveToFileTrigger:
-					s.saveToFileLogged(filename)
+					s.saveToFileLogged(ctx, filename)
 				case <-ctx.Done():
 					return
 				}
@@ -38,7 +38,7 @@ func (s *MetricsService) SaveToFile(ctx context.Context, filename string, interv
 		for {
 			select {
 			case <-ticker.C:
-				s.saveToFileLogged(filename)
+				s.saveToFileLogged(ctx, filename)
 			case <-ctx.Done():
 				return
 			}
@@ -46,16 +46,16 @@ func (s *MetricsService) SaveToFile(ctx context.Context, filename string, interv
 	}()
 }
 
-func (s *MetricsService) saveToFileLogged(filename string) {
-	if err := s.saveToFile(filename); err != nil {
+func (s *MetricsService) saveToFileLogged(ctx context.Context, filename string) {
+	if err := s.saveToFile(ctx, filename); err != nil {
 		logger.Log.Error("failed to save metrics", zap.Error(err))
 	} else {
 		logger.Log.Info("current metrics have been saved to file", zap.String("file", filename))
 	}
 }
 
-func (s *MetricsService) saveToFile(filename string) error {
-	m, err := s.GetList()
+func (s *MetricsService) saveToFile(ctx context.Context, filename string) error {
+	m, err := s.GetList(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get list of metrics: %w", err)
 	}

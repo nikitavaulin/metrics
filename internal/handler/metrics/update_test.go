@@ -1,6 +1,7 @@
 package metricshandler
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -16,17 +17,17 @@ type MockMetricsService struct {
 	mock.Mock
 }
 
-func (ms *MockMetricsService) Add(name string, metric models.Metrics) error {
+func (ms *MockMetricsService) Add(ctx context.Context, name string, metric models.Metrics) error {
 	args := ms.Called(name, metric)
 	return args.Error(0)
 }
 
-func (ms *MockMetricsService) Get(name string) (any, error) {
+func (ms *MockMetricsService) Get(ctx context.Context, name string) (any, error) {
 	args := ms.Called(name)
 	return args.Get(0), args.Error(1)
 }
 
-func (ms *MockMetricsService) GetList() (map[string]any, error) {
+func (ms *MockMetricsService) GetList(ctx context.Context) (map[string]any, error) {
 	args := ms.Called()
 	if data := args.Get(0); data != nil {
 		return data.(map[string]any), args.Error(1)
@@ -34,7 +35,7 @@ func (ms *MockMetricsService) GetList() (map[string]any, error) {
 	return nil, args.Error(1)
 }
 
-func (ms *MockMetricsService) SetMValueFromStorage(m *models.Metrics) error {
+func (ms *MockMetricsService) SetMValueFromStorage(ctx context.Context, m *models.Metrics) error {
 	args := ms.Called()
 	return args.Error(0)
 }

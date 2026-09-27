@@ -10,6 +10,7 @@ import (
 	metricshandler "github.com/nikitavaulin/metrics/internal/handler/metrics"
 	pinghandler "github.com/nikitavaulin/metrics/internal/handler/ping"
 	"github.com/nikitavaulin/metrics/internal/logger"
+	"github.com/nikitavaulin/metrics/internal/repository"
 	"github.com/nikitavaulin/metrics/internal/repository/filestorage"
 	"github.com/nikitavaulin/metrics/internal/repository/memstorage"
 	postgresstorage "github.com/nikitavaulin/metrics/internal/repository/postgres"
@@ -20,46 +21,67 @@ import (
 )
 
 func main() {
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func run() error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	serverCfg, err := serverconfig.New()
 	if err != nil {
-		log.Fatal(fmt.Errorf("failed to get server cfg: %w", err))
+		return fmt.Errorf("failed to get server cfg: %w", err)
 	}
 
 	if err := logger.Initialize(serverCfg.LogLevel); err != nil {
-		log.Fatal(fmt.Errorf("failed to initialize logger: %w", err))
+		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
 
-	dbPool, err := dbconfig.New(ctx, serverCfg.DbConnectionString)
-	if err != nil {
-		log.Fatal(fmt.Errorf("failed to configure database pool: %w", err))
+	var mStorage repository.Storage
+
+	if serverCfg.DbConnectionString != nil {
+		dbPool, err := dbconfig.New(ctx, *serverCfg.DbConnectionString)
+		if err != nil {
+			return fmt.Errorf("failed to configure database pool: %w", err)
+		}
+		defer dbPool.Close()
+
+		dbStorage := postgresstorage.New(dbPool)
+		mStorage = dbStorage
+
+	} else {
+		memStorage := memstorage.New()
+		mStorage = memStorage
 	}
-	defer dbPool.Close()
 
 	fStorage := filestorage.New()
 
-	mStorage := memstorage.New()
 	mService := metricsservice.New(mStorage, fStorage)
 	mHandler := metricshandler.New(mService)
 
-	pHandler := pinghandler.New(pingservice.New(postgresstorage.New(dbPool)))
-
-	if *serverCfg.IsNeedRestore {
-		mService.LoadMetrics(serverCfg.FileStoragePath)
-	}
-	mService.SaveToFile(ctx, serverCfg.FileStoragePath, *serverCfg.StoreInterval)
-
 	router := httpserver.NewRouter()
 	router.RegisterRoutes(mHandler.Routes())
+
+	dbStorage, _ := mStorage.(*postgresstorage.Storage)
+	pHandler := pinghandler.New(pingservice.New(dbStorage))
 	router.RegisterRoutes(pHandler.Routes())
+
+	if _, ok := mStorage.(*memstorage.MemStorage); ok {
+		if *serverCfg.IsNeedRestore {
+			mService.LoadMetrics(ctx, serverCfg.FileStoragePath)
+		}
+		mService.SaveToFile(ctx, serverCfg.FileStoragePath, *serverCfg.StoreInterval)
+	}
 
 	httpServer := httpserver.New(serverCfg)
 	httpServer.RegisterRouter(*router)
 
 	logger.Log.Info("Running HTTP server", zap.String("address", serverCfg.Address))
 	if err := httpServer.Run(); err != nil {
-		logger.Log.Fatal("Running server error", zap.Error(err))
+		return fmt.Errorf("running server: %w", err)
 	}
+
+	return nil
 }

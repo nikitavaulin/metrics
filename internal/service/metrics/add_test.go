@@ -1,6 +1,7 @@
 package metricsservice
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -13,27 +14,27 @@ type MockMetricsStorage struct {
 	mock.Mock
 }
 
-func (m *MockMetricsStorage) Add(name string, metric any) error {
+func (m *MockMetricsStorage) Add(ctx context.Context, name string, metric any) error {
 	args := m.Called(name, metric)
 	return args.Error(0)
 }
 
-func (m *MockMetricsStorage) GetOrNil(name string) (any, error) {
+func (m *MockMetricsStorage) GetOrNil(ctx context.Context, name string) (any, error) {
 	args := m.Called(name)
 	return args.Get(0), args.Error(1)
 }
 
-func (m *MockMetricsStorage) Update(name string, updated any) error {
+func (m *MockMetricsStorage) Update(ctx context.Context, name string, updated any) error {
 	args := m.Called(name, updated)
 	return args.Error(0)
 }
 
-func (m *MockMetricsStorage) Get(name string) (any, error) {
+func (m *MockMetricsStorage) Get(ctx context.Context, name string) (any, error) {
 	args := m.Called(name)
 	return args.Get(0), args.Error(1)
 }
 
-func (m *MockMetricsStorage) GetList() (map[string]any, error) {
+func (m *MockMetricsStorage) GetList(ctx context.Context) (map[string]any, error) {
 	args := m.Called()
 	if data := args.Get(0); data != nil {
 		return data.(map[string]any), args.Error(1)
@@ -241,7 +242,7 @@ func TestMetricsService_Add(t *testing.T) {
 			tt.setupMock(mockStorage)
 			s := New(mockStorage, nil)
 
-			gotErr := s.Add(tt.mName, tt.metric)
+			gotErr := s.Add(context.Background(), tt.mName, tt.metric)
 			if tt.wantErr {
 				assert.Error(t, gotErr, "should be error")
 			} else {

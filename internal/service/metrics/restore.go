@@ -1,12 +1,13 @@
 package metricsservice
 
 import (
+	"context"
 	"github.com/nikitavaulin/metrics/internal/logger"
 	models "github.com/nikitavaulin/metrics/internal/model"
 	"go.uber.org/zap"
 )
 
-func (s *MetricsService) LoadMetrics(filename string) {
+func (s *MetricsService) LoadMetrics(ctx context.Context, filename string) {
 	var metrics []models.Metrics
 	if err := s.fs.LoadFromJSON(filename, &metrics); err != nil {
 		logger.Log.Error("failed to load metrics from json file", zap.Error(err))
@@ -14,7 +15,7 @@ func (s *MetricsService) LoadMetrics(filename string) {
 	}
 
 	for _, m := range metrics {
-		if err := s.Add(m.ID, m); err != nil {
+		if err := s.Add(ctx, m.ID, m); err != nil {
 			logger.Log.Error(
 				"failed to load metric from file",
 				zap.String("metric", m.ID),

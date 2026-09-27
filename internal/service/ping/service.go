@@ -2,6 +2,7 @@ package pingservice
 
 import (
 	"context"
+	"errors"
 
 	postgresstorage "github.com/nikitavaulin/metrics/internal/repository/postgres"
 )
@@ -15,5 +16,8 @@ func New(storage *postgresstorage.Storage) *PingService {
 }
 
 func (s *PingService) PingDB(ctx context.Context) error {
+	if s.storage == nil {
+		return errors.New("postgres is not configured")
+	}
 	return s.storage.PingDB(ctx)
 }

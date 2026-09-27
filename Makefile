@@ -11,7 +11,19 @@ test:
 		@go test -v ./... -count 1
 
 run:
-		@DATABASE_DSN=$(DATABASE_DSN) go run ./cmd/server
+		@DATABASE_DSN="$(DATABASE_DSN)" go run ./cmd/server
+
+migrate-up:
+		@migrate -database "$(DATABASE_DSN)" -path ./migrations up 
+
+migrate-down:
+		@migrate -database "$(DATABASE_DSN)" -path ./migrations down 1
+
+migrate-create: ## make migrate-create NAME=add_example
+ifeq ($(strip $(NAME)),)
+	$(error Укажите NAME: make migrate-create NAME=add_example)
+endif
+	migrate create -ext sql -dir ./migrations -seq $(NAME)
 
 autotest-1:
 		@./metricstest -test.v -test.run=^TestIteration1$ -binary-path=./server.exe

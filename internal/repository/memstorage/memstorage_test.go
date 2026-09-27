@@ -1,6 +1,7 @@
 package memstorage
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -42,7 +43,7 @@ func TestAdd(t *testing.T) {
 			s := New()
 			tt.setup(s)
 
-			err := s.Add(tt.metricName, tt.metricValue)
+			err := s.Add(context.Background(), tt.metricName, tt.metricValue)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -85,7 +86,7 @@ func TestGet(t *testing.T) {
 			s := New()
 			tt.setup(s)
 
-			val, err := s.Get(tt.metricName)
+			val, err := s.Get(context.Background(), tt.metricName)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -123,7 +124,7 @@ func TestGetOrNil(t *testing.T) {
 			s := New()
 			tt.setup(s)
 
-			val, err := s.GetOrNil(tt.metricName)
+			val, err := s.GetOrNil(context.Background(), tt.metricName)
 
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expectedVal, val)
@@ -160,7 +161,7 @@ func TestUpdate(t *testing.T) {
 			s := New()
 			tt.setup(s)
 
-			err := s.Update(tt.metricName, tt.newValue)
+			err := s.Update(context.Background(), tt.metricName, tt.newValue)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -208,7 +209,7 @@ func TestGetList(t *testing.T) {
 			s := New()
 			tt.setup(s)
 
-			metrics, err := s.GetList()
+			metrics, err := s.GetList(context.Background())
 
 			if tt.expectErr {
 				assert.Error(t, err)

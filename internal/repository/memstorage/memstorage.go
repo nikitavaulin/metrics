@@ -1,6 +1,7 @@
 package memstorage
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync"
@@ -16,8 +17,8 @@ func New() *MemStorage {
 	return &MemStorage{}
 }
 
-func (s *MemStorage) Get(name string) (any, error) {
-	metric, err := s.GetOrNil(name)
+func (s *MemStorage) Get(ctx context.Context, name string) (any, error) {
+	metric, err := s.GetOrNil(ctx, name)
 	if err != nil {
 		return nil, err
 	}
@@ -27,7 +28,7 @@ func (s *MemStorage) Get(name string) (any, error) {
 	return metric, nil
 }
 
-func (s *MemStorage) GetList() (map[string]any, error) {
+func (s *MemStorage) GetList(ctx context.Context) (map[string]any, error) {
 	metrics := make(map[string]any)
 	var err error
 	s.storage.Range(func(key, value any) bool {
@@ -42,7 +43,7 @@ func (s *MemStorage) GetList() (map[string]any, error) {
 	return metrics, err
 }
 
-func (s *MemStorage) GetOrNil(name string) (any, error) {
+func (s *MemStorage) GetOrNil(ctx context.Context, name string) (any, error) {
 	m, ok := s.storage.Load(name)
 	if !ok {
 		return nil, nil
@@ -50,7 +51,7 @@ func (s *MemStorage) GetOrNil(name string) (any, error) {
 	return m, nil
 }
 
-func (s *MemStorage) Add(name string, metric any) error {
+func (s *MemStorage) Add(ctx context.Context, name string, metric any) error {
 	_, ok := s.storage.Load(name)
 	if ok {
 		return fmt.Errorf("metric is already exist")
@@ -59,7 +60,7 @@ func (s *MemStorage) Add(name string, metric any) error {
 	return nil
 }
 
-func (s *MemStorage) Update(name string, updated any) error {
+func (s *MemStorage) Update(ctx context.Context, name string, updated any) error {
 	_, ok := s.storage.Load(name)
 	if !ok {
 		return fmt.Errorf("metric with name=%s not found", name)

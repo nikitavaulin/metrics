@@ -24,7 +24,7 @@ func (h *MetricsHandler) GetMetric(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	value, err := h.metricsService.Get(name)
+	value, err := h.metricsService.Get(r.Context(), name)
 	if err != nil {
 		if errors.Is(err, commonerrors.ErrNotFound) {
 			http.Error(rw, fmt.Sprintf("metric %s not found", name), http.StatusNotFound)

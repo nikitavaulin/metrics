@@ -19,12 +19,12 @@ const (
 )
 
 type Config struct {
-	Address            string `env:"ADDRESS"`
-	LogLevel           string `env:"LOG_LEVEL"`
-	StoreInterval      *int   `env:"STORE_INTERVAL"`
-	FileStoragePath    string `env:"FILE_STORAGE_PATH"`
-	IsNeedRestore      *bool  `env:"RESTORE"`
-	DbConnectionString string `env:"DATABASE_DSN"`
+	Address            string  `env:"ADDRESS"`
+	LogLevel           string  `env:"LOG_LEVEL"`
+	StoreInterval      *int    `env:"STORE_INTERVAL"`
+	FileStoragePath    string  `env:"FILE_STORAGE_PATH"`
+	IsNeedRestore      *bool   `env:"RESTORE"`
+	DbConnectionString *string `env:"DATABASE_DSN"`
 }
 
 func New() (*Config, error) {
@@ -37,10 +37,6 @@ func New() (*Config, error) {
 
 	if err := validation.ValidateServerAddress(cfg.Address); err != nil {
 		return nil, fmt.Errorf("invalid server address: %w", err)
-	}
-
-	if cfg.DbConnectionString == emptyDbConnStr {
-		return nil, fmt.Errorf("db connestion string is empty")
 	}
 
 	return &cfg, nil
@@ -79,7 +75,7 @@ func (cfg *Config) parseFlags() {
 	if cfg.IsNeedRestore == nil {
 		cfg.IsNeedRestore = &isNeedRestore
 	}
-	if cfg.DbConnectionString == "" {
-		cfg.DbConnectionString = dbConnString
+	if cfg.DbConnectionString == nil && dbConnString != emptyDbConnStr {
+		cfg.DbConnectionString = &dbConnString
 	}
 }
