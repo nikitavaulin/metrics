@@ -39,3 +39,52 @@ func (s *Storage) Update(ctx context.Context, name string, updated any) error {
 
 	return nil
 }
+
+func (s *Storage) UpdateMetrics(ctx context.Context, metrics []models.Metrics) error {
+	if len(metrics) == 0 {
+		return nil
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, s.pool.OperationTime())
+	defer cancel()
+
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin tx: %w", err)
+	}
+
+	defer tx.Rollback(ctx)
+
+	const query = `
+		INSERT INTO metrics (name, mtype, delta, value)
+		VALUES ($1, $2, $3, $4)
+		ON CONFLICT (name) DO UPDATE SET
+			delta = CASE WHEN EXCLUDED.mtype = 'counter'
+				THEN metrics.delta + EXCLUDED.delta ELSE NULL END,
+			value = EXCLUDED.value
+		WHERE metrics.mtype = EXCLUDED.mtype;
+	`
+
+	for _, metric := range metrics {
+		var delta *int64
+		var value *float64
+		if metric.MType == models.Counter {
+			delta = metric.Delta
+		} else {
+			value = metric.Value
+		}
+		result, err := tx.Exec(ctx, query, metric.ID, metric.MType, delta, value)
+		if err != nil {
+			return fmt.Errorf("failed to update metric %q in db: %w", metric.ID, err)
+		}
+		if result.RowsAffected() == 0 {
+			return fmt.Errorf("metric %q already exists with a different type", metric.ID)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit metrics update: %w", err)
+	}
+
+	return nil
+}

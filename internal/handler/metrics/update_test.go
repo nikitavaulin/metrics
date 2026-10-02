@@ -17,6 +17,11 @@ type MockMetricsService struct {
 	mock.Mock
 }
 
+func (ms *MockMetricsService) UpdateMetrics(ctx context.Context, metrics []models.Metrics) error {
+	args := ms.Called(metrics)
+	return args.Error(0)
+}
+
 func (ms *MockMetricsService) Add(ctx context.Context, name string, metric models.Metrics) error {
 	args := ms.Called(name, metric)
 	return args.Error(0)

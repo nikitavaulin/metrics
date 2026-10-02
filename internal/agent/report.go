@@ -19,52 +19,36 @@ const (
 
 func (a *Agent) Report() error {
 	a.mu.Lock()
-	defer a.mu.Unlock()
-
-	client := &http.Client{Timeout: 5 * time.Second}
-	url := fmt.Sprintf("%s/update/", a.serverAddr)
-
+	metrics := make([]models.Metrics, 0, len(a.metrics)+2)
 	for name, value := range a.metrics {
 		val := float64(value)
-
-		metric := models.Metrics{
-			ID:    name,
-			Value: &val,
-			MType: models.Gauge,
-		}
-
-		if err := a.sendJSONMetric(url, metric, client); err != nil {
-			return fmt.Errorf("failed to send metric %q: %w", name, err)
-		}
+		metrics = append(metrics, models.Metrics{
+			ID: name, MType: models.Gauge, Value: &val,
+		})
 	}
-
 	randomValue := float64(a.randomValue)
-	randomMetric := models.Metrics{
-		ID:    randomValueName,
-		Value: &randomValue,
-		MType: models.Gauge,
-	}
-
-	if err := a.sendJSONMetric(url, randomMetric, client); err != nil {
-		return fmt.Errorf("failed to send random value metric: %w", err)
-	}
-
 	pollCount := int64(a.pollCount)
-	pollCountMetric := models.Metrics{
-		ID:    pollCountName,
-		Delta: &pollCount,
-		MType: models.Counter,
-	}
+	metrics = append(metrics,
+		models.Metrics{ID: randomValueName, MType: models.Gauge, Value: &randomValue},
+		models.Metrics{ID: pollCountName, MType: models.Counter, Delta: &pollCount},
+	)
+	a.mu.Unlock()
 
-	if err := a.sendJSONMetric(url, pollCountMetric, client); err != nil {
-		return fmt.Errorf("failed to send poll count metric: %w", err)
-	}
+	client := &http.Client{Timeout: 5 * time.Second}
+	url := fmt.Sprintf("%s/updates/", a.serverAddr)
 
+	if err := a.sendJSON(url, metrics, client); err != nil {
+		return fmt.Errorf("failed to send metrics batch: %w", err)
+	}
 	return nil
 }
 
 func (a *Agent) sendJSONMetric(url string, metric models.Metrics, client *http.Client) error {
-	body, err := json.Marshal(&metric)
+	return a.sendJSON(url, metric, client)
+}
+
+func (a *Agent) sendJSON(url string, data any, client *http.Client) error {
+	body, err := json.Marshal(data)
 	if err != nil {
 		return fmt.Errorf("failed to marshal metric: %w", err)
 	}
@@ -88,6 +72,9 @@ func (a *Agent) sendJSONMetric(url string, metric models.Metrics, client *http.C
 	defer resp.Body.Close()
 
 	logResponse(resp)
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("server returned %s", resp.Status)
+	}
 
 	return nil
 }

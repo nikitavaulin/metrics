@@ -10,6 +10,7 @@ import (
 )
 
 type MemStorage struct {
+	mu      sync.RWMutex
 	storage sync.Map
 }
 
@@ -29,6 +30,8 @@ func (s *MemStorage) Get(ctx context.Context, name string) (any, error) {
 }
 
 func (s *MemStorage) GetList(ctx context.Context) (map[string]any, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	metrics := make(map[string]any)
 	var err error
 	s.storage.Range(func(key, value any) bool {
@@ -44,6 +47,8 @@ func (s *MemStorage) GetList(ctx context.Context) (map[string]any, error) {
 }
 
 func (s *MemStorage) GetOrNil(ctx context.Context, name string) (any, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	m, ok := s.storage.Load(name)
 	if !ok {
 		return nil, nil
@@ -52,6 +57,8 @@ func (s *MemStorage) GetOrNil(ctx context.Context, name string) (any, error) {
 }
 
 func (s *MemStorage) Add(ctx context.Context, name string, metric any) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	_, ok := s.storage.Load(name)
 	if ok {
 		return fmt.Errorf("metric is already exist")
@@ -61,6 +68,8 @@ func (s *MemStorage) Add(ctx context.Context, name string, metric any) error {
 }
 
 func (s *MemStorage) Update(ctx context.Context, name string, updated any) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	_, ok := s.storage.Load(name)
 	if !ok {
 		return fmt.Errorf("metric with name=%s not found", name)

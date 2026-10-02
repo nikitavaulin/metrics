@@ -124,3 +124,13 @@ autotest-11: build
 				-database-dsn='$(DATABASE_DSN)' \
 				-server-port=8080 \
 				-source-path=.
+
+.PHONY: autotest-12
+autotest-12: build
+		@ADDRESS="localhost:8080" \
+		./metricstest -test.v -test.run=^TestIteration12$$ \
+				-agent-binary-path=./agent.exe \
+				-binary-path=./server.exe \
+				-database-dsn='$(DATABASE_DSN)' \
+				-server-port=8080 \
+				-source-path=.
