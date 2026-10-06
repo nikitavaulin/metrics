@@ -2,11 +2,15 @@ package agent
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
+	"syscall"
 	"time"
 
 	models "github.com/nikitavaulin/metrics/internal/model"
@@ -28,7 +32,8 @@ func (a *Agent) Report() error {
 	}
 	randomValue := float64(a.randomValue)
 	pollCount := int64(a.pollCount)
-	metrics = append(metrics,
+	metrics = append(
+		metrics,
 		models.Metrics{ID: randomValueName, MType: models.Gauge, Value: &randomValue},
 		models.Metrics{ID: pollCountName, MType: models.Counter, Delta: &pollCount},
 	)
@@ -37,14 +42,29 @@ func (a *Agent) Report() error {
 	client := &http.Client{Timeout: 5 * time.Second}
 	url := fmt.Sprintf("%s/updates/", a.serverAddr)
 
-	if err := a.sendJSON(url, metrics, client); err != nil {
+	if err := a.sendRetriable(url, metrics, client); err != nil {
 		return fmt.Errorf("failed to send metrics batch: %w", err)
 	}
 	return nil
 }
 
-func (a *Agent) sendJSONMetric(url string, metric models.Metrics, client *http.Client) error {
-	return a.sendJSON(url, metric, client)
+func (a *Agent) sendRetriable(url string, data any, client *http.Client) error {
+	err := a.sendJSON(url, data, client)
+	if err != nil {
+		try := 1
+		duration := 1
+		for err != nil && isRetriableError(err) && try <= 3 {
+			time.Sleep(time.Duration(duration) * time.Second)
+			err = a.sendJSON(url, data, client)
+			duration += 2
+			try++
+		}
+		if err != nil {
+			return fmt.Errorf("failed to send json data: %w", err)
+		}
+	}
+
+	return nil
 }
 
 func (a *Agent) sendJSON(url string, data any, client *http.Client) error {
@@ -73,6 +93,7 @@ func (a *Agent) sendJSON(url string, data any, client *http.Client) error {
 
 	logResponse(resp)
 	if resp.StatusCode != http.StatusOK {
+		_, _ = io.Copy(io.Discard, resp.Body)
 		return fmt.Errorf("server returned %s", resp.Status)
 	}
 
@@ -102,4 +123,28 @@ func logResponse(resp *http.Response) {
 		)
 		resp.Body.Close()
 	}
+}
+
+func isRetriableError(err error) bool {
+	if err == nil {
+		return false
+	}
+	// Ошибка отмены контекста пользователем
+	if errors.Is(err, context.Canceled) {
+		return false
+	}
+	// Превышен таймаут или дедлайн контекста
+	if errors.Is(err, context.DeadlineExceeded) {
+		return true
+	}
+	// Соединение отклонено (сервер упал/перезагружается)
+	if errors.Is(err, syscall.ECONNREFUSED) || errors.Is(err, syscall.ECONNRESET) {
+		return true
+	}
+	// Временная ошибка сети или таймаут сокета
+	var netErr net.Error
+	if errors.As(err, &netErr) && netErr.Timeout() {
+		return true
+	}
+	return false
 }
