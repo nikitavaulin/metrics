@@ -3,6 +3,7 @@ package postgresstorage
 import (
 	"context"
 	"fmt"
+	"github.com/nikitavaulin/metrics/internal/retry"
 
 	dbconfig "github.com/nikitavaulin/metrics/internal/config/db"
 )
@@ -20,7 +21,7 @@ func New(pool *dbconfig.Pool) *Storage {
 func (s *Storage) PingDB(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, s.pool.OperationTime())
 	defer cancel()
-	if err := s.pool.Ping(ctx); err != nil {
+	if err := retry.Do(ctx, s.pool.Ping, IsRetriableError); err != nil {
 		return fmt.Errorf("failed to ping pool: %w", err)
 	}
 	return nil

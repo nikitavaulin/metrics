@@ -3,6 +3,7 @@ package postgresstorage
 import (
 	"context"
 	"fmt"
+	"github.com/nikitavaulin/metrics/internal/retry"
 
 	"github.com/nikitavaulin/metrics/internal/commonerrors"
 	"github.com/nikitavaulin/metrics/internal/domain"
@@ -29,12 +30,18 @@ func (s *Storage) Update(ctx context.Context, name string, updated any) error {
 		UPDATE metrics SET %s = $1 WHERE name = $2 AND mtype = $3;
 	`, valueParamName)
 
-	result, err := s.pool.Exec(ctx, query, updated, name, mtype)
+	err = retry.Do(ctx, func(ctx context.Context) error {
+		result, err := s.pool.Exec(ctx, query, updated, name, mtype)
+		if err != nil {
+			return fmt.Errorf("failed to update metric in db: %w", err)
+		}
+		if result.RowsAffected() == 0 {
+			return fmt.Errorf("metric with name=%s and mtype=%s: %w", name, mtype, commonerrors.ErrNotFound)
+		}
+		return nil
+	}, IsRetriableError)
 	if err != nil {
-		return fmt.Errorf("failed to update metric in db: %w", err)
-	}
-	if result.RowsAffected() == 0 {
-		return fmt.Errorf("metric with name=%s and mtype=%s: %w", name, mtype, commonerrors.ErrNotFound)
+		return err
 	}
 
 	return nil
@@ -48,6 +55,12 @@ func (s *Storage) UpdateMetrics(ctx context.Context, metrics []models.Metrics) e
 	ctx, cancel := context.WithTimeout(ctx, s.pool.OperationTime())
 	defer cancel()
 
+	return retry.Do(ctx, func(ctx context.Context) error {
+		return s.updateMetricsOnce(ctx, metrics)
+	}, IsRetriableError)
+}
+
+func (s *Storage) updateMetricsOnce(ctx context.Context, metrics []models.Metrics) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin tx: %w", err)
@@ -83,7 +96,9 @@ func (s *Storage) UpdateMetrics(ctx context.Context, metrics []models.Metrics) e
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return fmt.Errorf("failed to commit metrics update: %w", err)
+		// Commit may have succeeded before the connection was lost.
+		// Retrying could apply counter increments twice.
+		return &commitError{err: fmt.Errorf("failed to commit metrics update: %w", err)}
 	}
 
 	return nil

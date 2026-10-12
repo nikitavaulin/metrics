@@ -2,6 +2,7 @@ package agent
 
 import (
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -81,7 +82,7 @@ func TestAgentReport(t *testing.T) {
 		serverAddr:  server.URL,
 	}
 
-	err := agent.Report()
+	err := agent.Report(context.Background())
 	assert.NoError(t, err)
 	require.Equal(t, 1, requestsCount)
 	require.Len(t, received, 5)
@@ -111,5 +112,5 @@ func TestAgentReportServerError(t *testing.T) {
 	}))
 	defer server.Close()
 	agent := &Agent{serverAddr: server.URL}
-	require.ErrorContains(t, agent.Report(), "500")
+	require.ErrorContains(t, agent.Report(context.Background()), "500")
 }

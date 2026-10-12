@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/nikitavaulin/metrics/internal/retry"
 	"io"
 	"log"
 	"net"
@@ -21,7 +22,7 @@ const (
 	contentTypeJSON string = "application/json"
 )
 
-func (a *Agent) Report() error {
+func (a *Agent) Report(ctx context.Context) error {
 	a.mu.Lock()
 	metrics := make([]models.Metrics, 0, len(a.metrics)+2)
 	for name, value := range a.metrics {
@@ -42,32 +43,22 @@ func (a *Agent) Report() error {
 	client := &http.Client{Timeout: 5 * time.Second}
 	url := fmt.Sprintf("%s/updates/", a.serverAddr)
 
-	if err := a.sendRetriable(url, metrics, client); err != nil {
+	if err := a.sendRetriable(ctx, url, metrics, client); err != nil {
 		return fmt.Errorf("failed to send metrics batch: %w", err)
 	}
 	return nil
 }
 
-func (a *Agent) sendRetriable(url string, data any, client *http.Client) error {
-	err := a.sendJSON(url, data, client)
+func (a *Agent) sendRetriable(ctx context.Context, url string, data any, client *http.Client) error {
+	err := retry.Do(ctx, func(ctx context.Context) error {
+		return a.sendJSON(ctx, url, data, client)
+	}, isRetriableError)
 	if err != nil {
-		try := 1
-		duration := 1
-		for err != nil && isRetriableError(err) && try <= 3 {
-			time.Sleep(time.Duration(duration) * time.Second)
-			err = a.sendJSON(url, data, client)
-			duration += 2
-			try++
-		}
-		if err != nil {
-			return fmt.Errorf("failed to send json data: %w", err)
-		}
+		return fmt.Errorf("failed to send json data: %w", err)
 	}
-
 	return nil
 }
-
-func (a *Agent) sendJSON(url string, data any, client *http.Client) error {
+func (a *Agent) sendJSON(ctx context.Context, url string, data any, client *http.Client) error {
 	body, err := json.Marshal(data)
 	if err != nil {
 		return fmt.Errorf("failed to marshal metric: %w", err)
@@ -78,7 +69,7 @@ func (a *Agent) sendJSON(url string, data any, client *http.Client) error {
 		return fmt.Errorf("failed to compress json metrics: %w", err)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(compressedBody))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(compressedBody))
 	if err != nil {
 		return fmt.Errorf("failed to create post request: %w", err)
 	}
@@ -141,7 +132,12 @@ func isRetriableError(err error) bool {
 	if errors.Is(err, syscall.ECONNREFUSED) || errors.Is(err, syscall.ECONNRESET) {
 		return true
 	}
-	// Временная ошибка сети или таймаут сокета
+	// Временная ошибка DNS или тайм-аут разрешения имени.
+	var dnsErr *net.DNSError
+	if errors.As(err, &dnsErr) {
+		return dnsErr.IsTimeout || dnsErr.IsTemporary
+	}
+	// Таймаут сетевой операции
 	var netErr net.Error
 	if errors.As(err, &netErr) && netErr.Timeout() {
 		return true

@@ -59,7 +59,7 @@ func (a *Agent) Run(ctx context.Context) {
 	for {
 		select {
 		case <-ticker.C:
-			if err := a.Report(); err != nil {
+			if err := a.Report(ctx); err != nil {
 				log.Printf("report error: %v", err)
 			}
 		case <-ctx.Done():
