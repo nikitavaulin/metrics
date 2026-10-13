@@ -15,7 +15,7 @@ const (
 	defaultFileStoragePath = "metrics.json"
 	defaultIsNeedRestore   = false
 
-	emptyDbConnStr = "emptyDbConnStr"
+	emptyDBConnStr = "empty"
 )
 
 type Config struct {
