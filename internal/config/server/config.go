@@ -56,7 +56,7 @@ func (cfg *Config) parseFlags() {
 	flag.IntVar(&storeInterval, "i", defaultStoreInterval, "metrics store interval (int seconds)")
 	flag.StringVar(&fileStoragePath, "f", defaultFileStoragePath, "file storage destination (path)")
 	flag.BoolVar(&isNeedRestore, "r", defaultIsNeedRestore, "restore metrics after start")
-	flag.StringVar(&dbConnString, "d", emptyDbConnStr, "postgres db connection string")
+	flag.StringVar(&dbConnString, "d", emptyDBConnStr, "postgres db connection string")
 
 	flag.Parse()
 
@@ -75,7 +75,7 @@ func (cfg *Config) parseFlags() {
 	if cfg.IsNeedRestore == nil {
 		cfg.IsNeedRestore = &isNeedRestore
 	}
-	if cfg.DatabaseDsn == nil && dbConnString != emptyDbConnStr {
+	if cfg.DatabaseDsn == nil && dbConnString != emptyDBConnStr {
 		cfg.DatabaseDsn = &dbConnString
 	}
 }
