@@ -19,12 +19,12 @@ const (
 )
 
 type Config struct {
-	Address            string  `env:"ADDRESS"`
-	LogLevel           string  `env:"LOG_LEVEL"`
-	StoreInterval      *int    `env:"STORE_INTERVAL"`
-	FileStoragePath    string  `env:"FILE_STORAGE_PATH"`
-	IsNeedRestore      *bool   `env:"RESTORE"`
-	DbConnectionString *string `env:"DATABASE_DSN"`
+	Address         string  `env:"ADDRESS"`
+	LogLevel        string  `env:"LOG_LEVEL"`
+	StoreInterval   *int    `env:"STORE_INTERVAL"`
+	FileStoragePath string  `env:"FILE_STORAGE_PATH"`
+	IsNeedRestore   *bool   `env:"RESTORE"`
+	DatabaseDsn     *string `env:"DATABASE_DSN"`
 }
 
 func New() (*Config, error) {
@@ -75,7 +75,7 @@ func (cfg *Config) parseFlags() {
 	if cfg.IsNeedRestore == nil {
 		cfg.IsNeedRestore = &isNeedRestore
 	}
-	if cfg.DbConnectionString == nil && dbConnString != emptyDbConnStr {
-		cfg.DbConnectionString = &dbConnString
+	if cfg.DatabaseDsn == nil && dbConnString != emptyDbConnStr {
+		cfg.DatabaseDsn = &dbConnString
 	}
 }

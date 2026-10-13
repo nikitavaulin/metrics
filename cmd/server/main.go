@@ -41,8 +41,8 @@ func run() error {
 
 	var mStorage repository.Storage
 
-	if serverCfg.DbConnectionString != nil {
-		dbPool, err := dbconfig.New(ctx, *serverCfg.DbConnectionString)
+	if serverCfg.DatabaseDsn != nil {
+		dbPool, err := dbconfig.New(ctx, *serverCfg.DatabaseDsn)
 		if err != nil {
 			return fmt.Errorf("failed to configure database pool: %w", err)
 		}
