@@ -2,14 +2,18 @@ module github.com/nikitavaulin/metrics
 
 go 1.25.11
 
-require github.com/stretchr/testify v1.11.1
+require (
+	github.com/caarlos0/env/v6 v6.10.1
+	github.com/golang-migrate/migrate/v4 v4.20.1
+	github.com/stretchr/testify v1.11.1
+)
 
 require (
-	github.com/caarlos0/env/v6 v6.10.1 // indirect
-	github.com/golang-migrate/migrate/v4 v4.20.1 // indirect
+	github.com/jackc/pgerrcode v0.0.0-20220416144525-469b46aa5efa // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect
+	github.com/rogpeppe/go-internal v1.16.0 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/sync v0.21.0 // indirect
 	golang.org/x/text v0.38.0 // indirect
