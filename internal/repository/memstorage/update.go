@@ -23,7 +23,7 @@ func (s *MemStorage) UpdateMetrics(ctx context.Context, metrics []models.Metrics
 
 		previous, exists := updates[metric.ID]
 		if !exists {
-			previous, exists = s.storage.Load(metric.ID)
+			previous, exists = s.storage[metric.ID]
 		}
 
 		switch metric.MType {
@@ -56,8 +56,11 @@ func (s *MemStorage) UpdateMetrics(ctx context.Context, metrics []models.Metrics
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+	if s.storage == nil {
+		s.storage = make(map[string]any)
+	}
 	for name, value := range updates {
-		s.storage.Store(name, value)
+		s.storage[name] = value
 	}
 	return nil
 }
