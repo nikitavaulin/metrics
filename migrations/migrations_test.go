@@ -30,4 +30,22 @@ func TestEmbeddedMigrations(t *testing.T) {
 	sql, err = io.ReadAll(down)
 	require.NoError(t, err)
 	require.Contains(t, string(sql), "DROP TABLE IF EXISTS metrics")
+
+	version, err = source.Next(version)
+	require.NoError(t, err)
+	require.Equal(t, uint(2), version)
+
+	up, _, err = source.ReadUp(version)
+	require.NoError(t, err)
+	defer up.Close()
+	sql, err = io.ReadAll(up)
+	require.NoError(t, err)
+	require.Contains(t, string(sql), "ALTER COLUMN name TYPE VARCHAR(255)")
+
+	down, _, err = source.ReadDown(version)
+	require.NoError(t, err)
+	defer down.Close()
+	sql, err = io.ReadAll(down)
+	require.NoError(t, err)
+	require.Contains(t, string(sql), "ALTER COLUMN name TYPE TEXT")
 }
