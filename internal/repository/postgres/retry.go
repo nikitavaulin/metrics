@@ -3,8 +3,8 @@ package postgresstorage
 import (
 	"context"
 	"errors"
-	"strings"
 
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
@@ -25,15 +25,19 @@ func IsRetriableError(err error) bool {
 		return false
 	}
 
-	var commitErr *commitError
-	if errors.As(err, &commitErr) {
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) {
 		return false
 	}
 
-	var pgErr *pgconn.PgError
-	if errors.As(err, &pgErr) {
-		return strings.HasPrefix(pgErr.Code, "08")
+	var commitErr *commitError
+	if errors.As(err, &commitErr) {
+		// Only a confirmed serialization failure or deadlock is safe to
+		// retry after Commit; connection loss leaves the result unknown.
+		return pgErr.Code == pgerrcode.SerializationFailure ||
+			pgErr.Code == pgerrcode.DeadlockDetected
 	}
 
-	return false
+	return pgerrcode.IsConnectionException(pgErr.Code) ||
+		pgerrcode.IsTransactionRollback(pgErr.Code)
 }
