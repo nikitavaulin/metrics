@@ -14,8 +14,6 @@ const (
 	defaultStoreInterval   = 300
 	defaultFileStoragePath = "metrics.json"
 	defaultIsNeedRestore   = false
-
-	emptyDBConnStr = "empty"
 )
 
 type Config struct {
@@ -56,9 +54,15 @@ func (cfg *Config) parseFlags() {
 	flag.IntVar(&storeInterval, "i", defaultStoreInterval, "metrics store interval (int seconds)")
 	flag.StringVar(&fileStoragePath, "f", defaultFileStoragePath, "file storage destination (path)")
 	flag.BoolVar(&isNeedRestore, "r", defaultIsNeedRestore, "restore metrics after start")
-	flag.StringVar(&dbConnString, "d", emptyDBConnStr, "postgres db connection string")
+	flag.StringVar(&dbConnString, "d", "", "postgres db connection string")
 
 	flag.Parse()
+	dbFlagSet := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "d" {
+			dbFlagSet = true
+		}
+	})
 
 	if cfg.Address == "" {
 		cfg.Address = address
@@ -75,7 +79,10 @@ func (cfg *Config) parseFlags() {
 	if cfg.IsNeedRestore == nil {
 		cfg.IsNeedRestore = &isNeedRestore
 	}
-	if cfg.DatabaseDsn == nil && dbConnString != emptyDBConnStr {
+	if cfg.DatabaseDsn != nil && *cfg.DatabaseDsn == "" {
+		cfg.DatabaseDsn = nil
+	}
+	if cfg.DatabaseDsn == nil && dbFlagSet && dbConnString != "" {
 		cfg.DatabaseDsn = &dbConnString
 	}
 }
