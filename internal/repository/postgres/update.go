@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/nikitavaulin/metrics/internal/commonerrors"
 	"github.com/nikitavaulin/metrics/internal/domain"
 	models "github.com/nikitavaulin/metrics/internal/model"
@@ -77,6 +78,7 @@ func (s *Storage) updateMetricsOnce(ctx context.Context, metrics []models.Metric
 		WHERE metrics.mtype = EXCLUDED.mtype;
 	`
 
+	batch := &pgx.Batch{}
 	for _, metric := range metrics {
 		var delta *int64
 		var value *float64
@@ -85,13 +87,23 @@ func (s *Storage) updateMetricsOnce(ctx context.Context, metrics []models.Metric
 		} else {
 			value = metric.Value
 		}
-		result, err := tx.Exec(ctx, query, metric.ID, metric.MType, delta, value)
+		batch.Queue(query, metric.ID, metric.MType, delta, value)
+	}
+
+	results := tx.SendBatch(ctx, batch)
+	defer results.Close()
+	for _, metric := range metrics {
+		result, err := results.Exec()
 		if err != nil {
 			return fmt.Errorf("failed to update metric %q in db: %w", metric.ID, err)
 		}
 		if result.RowsAffected() == 0 {
 			return fmt.Errorf("metric %q already exists with a different type", metric.ID)
 		}
+	}
+	// Release the batch results before issuing Commit on this connection.
+	if err := results.Close(); err != nil {
+		return fmt.Errorf("failed to close metrics batch: %w", err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {
