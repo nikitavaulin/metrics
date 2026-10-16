@@ -3,15 +3,17 @@ package pingservice
 import (
 	"context"
 	"errors"
-
-	postgresstorage "github.com/nikitavaulin/metrics/internal/repository/postgres"
 )
 
-type PingService struct {
-	storage *postgresstorage.Storage
+type Pinger interface {
+	PingDB(context.Context) error
 }
 
-func New(storage *postgresstorage.Storage) *PingService {
+type PingService struct {
+	storage Pinger
+}
+
+func New(storage Pinger) *PingService {
 	return &PingService{storage: storage}
 }
 
