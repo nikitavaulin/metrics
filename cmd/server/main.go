@@ -64,8 +64,7 @@ func run() error {
 	router := httpserver.NewRouter()
 	router.RegisterRoutes(mHandler.Routes())
 
-	dbStorage, _ := mStorage.(pingservice.Pinger)
-	pHandler := pinghandler.New(pingservice.New(dbStorage))
+	pHandler := pinghandler.New(pingservice.New(mStorage))
 	router.RegisterRoutes(pHandler.Routes())
 
 	if _, ok := mStorage.(*memstorage.MemStorage); ok {

@@ -14,6 +14,10 @@ type MockMetricsStorage struct {
 	mock.Mock
 }
 
+func (m *MockMetricsStorage) PingDB(ctx context.Context) error {
+	return m.Called(ctx).Error(0)
+}
+
 // UpdateMetrics implements [repository.Storage].
 func (m *MockMetricsStorage) UpdateMetrics(ctx context.Context, metrics []models.Metrics) error {
 	args := m.Called(metrics)

@@ -17,6 +17,10 @@ func New() *MemStorage {
 	return &MemStorage{storage: make(map[string]any)}
 }
 
+func (s *MemStorage) PingDB(context.Context) error {
+	return nil
+}
+
 func (s *MemStorage) Get(ctx context.Context, name string) (any, error) {
 	metric, err := s.GetOrNil(ctx, name)
 	if err != nil {

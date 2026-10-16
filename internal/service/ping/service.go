@@ -2,7 +2,6 @@ package pingservice
 
 import (
 	"context"
-	"errors"
 )
 
 type Pinger interface {
@@ -18,8 +17,5 @@ func New(storage Pinger) *PingService {
 }
 
 func (s *PingService) PingDB(ctx context.Context) error {
-	if s.storage == nil {
-		return errors.New("postgres is not configured")
-	}
 	return s.storage.PingDB(ctx)
 }

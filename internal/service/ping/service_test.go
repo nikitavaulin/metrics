@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/nikitavaulin/metrics/internal/repository/memstorage"
 	"github.com/stretchr/testify/require"
 )
 
@@ -13,8 +14,8 @@ type pingFunc func(context.Context) error
 func (f pingFunc) PingDB(ctx context.Context) error { return f(ctx) }
 
 func TestPingDB(t *testing.T) {
-	t.Run("not configured", func(t *testing.T) {
-		require.EqualError(t, New(nil).PingDB(context.Background()), "postgres is not configured")
+	t.Run("memory storage", func(t *testing.T) {
+		require.NoError(t, New(memstorage.New()).PingDB(context.Background()))
 	})
 	for _, want := range []error{nil, errors.New("database unavailable")} {
 		name := "success"
