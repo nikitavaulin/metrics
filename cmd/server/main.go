@@ -17,7 +17,6 @@ import (
 	httpserver "github.com/nikitavaulin/metrics/internal/server"
 	metricsservice "github.com/nikitavaulin/metrics/internal/service/metrics"
 	pingservice "github.com/nikitavaulin/metrics/internal/service/ping"
-	"github.com/nikitavaulin/metrics/migrations"
 	"go.uber.org/zap"
 )
 
@@ -43,9 +42,6 @@ func run() error {
 	var mStorage repository.Storage
 
 	if serverCfg.DatabaseDsn != nil {
-		if err := migrations.Up(ctx, *serverCfg.DatabaseDsn); err != nil {
-			return fmt.Errorf("failed to migrate database: %w", err)
-		}
 		dbPool, err := dbconfig.New(ctx, *serverCfg.DatabaseDsn)
 		if err != nil {
 			return fmt.Errorf("failed to configure database pool: %w", err)

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/nikitavaulin/metrics/migrations"
 )
 
 const (
@@ -26,6 +27,11 @@ func New(ctx context.Context, connStr string) (*Pool, error) {
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create new pgx pool %w", err)
+	}
+
+	if err := migrations.Up(ctx, connStr); err != nil {
+		pool.Close()
+		return nil, fmt.Errorf("failed to migrate database: %w", err)
 	}
 
 	return &Pool{
