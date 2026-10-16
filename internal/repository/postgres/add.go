@@ -3,10 +3,10 @@ package postgresstorage
 import (
 	"context"
 	"fmt"
-	"github.com/nikitavaulin/metrics/internal/retry"
 
 	"github.com/nikitavaulin/metrics/internal/domain"
 	models "github.com/nikitavaulin/metrics/internal/model"
+	"github.com/nikitavaulin/metrics/internal/retry"
 )
 
 func (s *Storage) Add(ctx context.Context, name string, metric any) error {
@@ -18,17 +18,15 @@ func (s *Storage) Add(ctx context.Context, name string, metric any) error {
 		return fmt.Errorf("failed to get mtype by value: %w", err)
 	}
 
-	var valueParamName string
-	if mtype == models.Counter {
-		valueParamName = "delta"
-	} else {
-		valueParamName = "value"
+	var query string
+	switch mtype {
+	case models.Counter:
+		query = `INSERT INTO metrics (name, mtype, delta) VALUES ($1, $2, $3);`
+	case models.Gauge:
+		query = `INSERT INTO metrics (name, mtype, value) VALUES ($1, $2, $3);`
+	default:
+		return fmt.Errorf("unsupported metric type: %s", mtype)
 	}
-
-	query := fmt.Sprintf(`
-		INSERT INTO metrics (name, mtype, %s)
-		VALUES ($1, $2, $3);
-	`, valueParamName)
 
 	err = retry.Do(ctx, func(ctx context.Context) error {
 		_, err := s.pool.Exec(ctx, query, name, mtype, metric)
