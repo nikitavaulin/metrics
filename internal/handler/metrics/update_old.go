@@ -21,7 +21,7 @@ func (h *MetricsHandler) UpdateMetrics(rw http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := h.metricsService.Add(name, metric); err != nil {
+	if err := h.metricsService.Add(r.Context(), name, metric); err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}

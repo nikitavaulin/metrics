@@ -28,7 +28,7 @@ func (h *MetricsHandler) GetJSONMetrics(rw http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := h.metricsService.SetMValueFromStorage(&metric); err != nil {
+	if err := h.metricsService.SetMValueFromStorage(r.Context(), &metric); err != nil {
 		if errors.Is(err, commonerrors.ErrNotFound) {
 			http.Error(rw, fmt.Sprintf("metric %s not found", metric.ID), http.StatusNotFound)
 		} else {

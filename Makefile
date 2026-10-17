@@ -1,3 +1,8 @@
+ifneq ($(wildcard .env),)
+    include .env
+    export $(shell sed 's/=.*//' .env)
+endif
+
 build:
 		@go build ./cmd/server && \
 		go build ./cmd/agent
@@ -6,7 +11,19 @@ test:
 		@go test -v ./... -count 1
 
 run:
-		@go run ./cmd/server
+		@DATABASE_DSN="$(DATABASE_DSN)" go run ./cmd/server
+
+migrate-up:
+		@migrate -database "$(DATABASE_DSN)" -path ./migrations up 
+
+migrate-down:
+		@migrate -database "$(DATABASE_DSN)" -path ./migrations down 1
+
+migrate-create: ## make migrate-create NAME=add_example
+ifeq ($(strip $(NAME)),)
+	$(error Укажите NAME: make migrate-create NAME=add_example)
+endif
+	migrate create -ext sql -dir ./migrations -seq $(NAME)
 
 autotest-1:
 		@./metricstest -test.v -test.run=^TestIteration1$ -binary-path=./server.exe
@@ -78,5 +95,51 @@ autotest-9:
 				-agent-binary-path=./agent.exe \
 				-binary-path=./server.exe \
 				-file-storage-path=./metrics_temp.json \
+				-server-port=8080 \
+				-source-path=.
+
+autotest-10a: build
+		@ADDRESS="localhost:8080" \
+		./metricstest -test.v -test.run=^TestIteration10A$ \
+				-agent-binary-path=./agent.exe \
+				-binary-path=./server.exe \
+				-database-dsn='$(DATABASE_DSN)' \
+				-server-port=8080 \
+				-source-path=.
+
+autotest-10b: build
+		@ADDRESS="localhost:8080" \
+		./metricstest -test.v -test.run=^TestIteration10B$ \
+				-agent-binary-path=./agent.exe \
+				-binary-path=./server.exe \
+				-database-dsn='$(DATABASE_DSN)' \
+				-server-port=8080 \
+				-source-path=.
+
+autotest-11: build
+		@ADDRESS="localhost:8080" \
+		./metricstest -test.v -test.run=^TestIteration11$$ \
+				-agent-binary-path=./agent.exe \
+				-binary-path=./server.exe \
+				-database-dsn='$(DATABASE_DSN)' \
+				-server-port=8080 \
+				-source-path=.
+
+.PHONY: autotest-12 autotest-13
+autotest-12: build
+		@ADDRESS="localhost:8080" \
+		./metricstest -test.v -test.run=^TestIteration12$$ \
+				-agent-binary-path=./agent.exe \
+				-binary-path=./server.exe \
+				-database-dsn='$(DATABASE_DSN)' \
+				-server-port=8080 \
+				-source-path=.
+
+autotest-13: build
+		@ADDRESS="localhost:8080" \
+		./metricstest -test.v -test.run=^TestIteration13$$ \
+				-agent-binary-path=./agent.exe \
+				-binary-path=./server.exe \
+				-database-dsn='$(DATABASE_DSN)' \
 				-server-port=8080 \
 				-source-path=.

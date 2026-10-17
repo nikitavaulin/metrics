@@ -1,17 +1,18 @@
 package metricsservice
 
 import (
+	"context"
 	"fmt"
 
 	models "github.com/nikitavaulin/metrics/internal/model"
 )
 
-func (s *MetricsService) Add(name string, metric models.Metrics) error {
+func (s *MetricsService) Add(ctx context.Context, name string, metric models.Metrics) error {
 	if err := validateMetric(name, metric); err != nil {
 		return fmt.Errorf("invalid input params: %w", err)
 	}
 
-	prev, err := s.storage.GetOrNil(name)
+	prev, err := s.storage.GetOrNil(ctx, name)
 	if err != nil {
 		return fmt.Errorf("failed to get previous metric value: %w", err)
 	}
@@ -21,9 +22,9 @@ func (s *MetricsService) Add(name string, metric models.Metrics) error {
 	// новое значение
 	if prev == nil {
 		if metric.MType == models.Counter {
-			updateErr = s.storage.Add(name, *metric.Delta)
+			updateErr = s.storage.Add(ctx, name, *metric.Delta)
 		} else {
-			updateErr = s.storage.Add(name, *metric.Value)
+			updateErr = s.storage.Add(ctx, name, *metric.Value)
 		}
 		if updateErr != nil {
 			return updateErr
@@ -34,7 +35,7 @@ func (s *MetricsService) Add(name string, metric models.Metrics) error {
 
 	switch metric.MType {
 	case models.Gauge:
-		updateErr = s.storage.Update(name, *metric.Value)
+		updateErr = s.storage.Update(ctx, name, *metric.Value)
 
 	case models.Counter:
 		prevValue, ok := prev.(int64)
@@ -42,7 +43,7 @@ func (s *MetricsService) Add(name string, metric models.Metrics) error {
 			return fmt.Errorf("failed to convert previous metric value to int")
 		}
 		counter := prevValue + *metric.Delta
-		updateErr = s.storage.Update(name, counter)
+		updateErr = s.storage.Update(ctx, name, counter)
 	default:
 		return fmt.Errorf("metricsservice: unknown mtype")
 	}

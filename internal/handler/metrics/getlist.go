@@ -6,7 +6,7 @@ import (
 )
 
 func (h *MetricsHandler) GetMetricsList(rw http.ResponseWriter, r *http.Request) {
-	metrics, err := h.metricsService.GetList()
+	metrics, err := h.metricsService.GetList(r.Context())
 	if err != nil {
 		http.Error(rw, fmt.Sprintf("failed to get metrics list: %v", err), http.StatusInternalServerError)
 		return

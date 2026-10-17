@@ -1,0 +1,8 @@
+BEGIN;
+
+DROP TRIGGER IF EXISTS metrics_set_updated_at ON METRICS;
+DROP FUNCTION IF EXISTS set_updated_at();
+DROP TABLE IF EXISTS metrics;
+DROP TYPE IF EXISTS metric_type;
+
+COMMIT;

@@ -1,7 +1,7 @@
 package memstorage
 
 import (
-	"errors"
+	"context"
 	"fmt"
 	"sync"
 
@@ -9,15 +9,20 @@ import (
 )
 
 type MemStorage struct {
-	storage sync.Map
+	mu      sync.RWMutex
+	storage map[string]any
 }
 
 func New() *MemStorage {
-	return &MemStorage{}
+	return &MemStorage{storage: make(map[string]any)}
 }
 
-func (s *MemStorage) Get(name string) (any, error) {
-	metric, err := s.GetOrNil(name)
+func (s *MemStorage) PingDB(context.Context) error {
+	return nil
+}
+
+func (s *MemStorage) Get(ctx context.Context, name string) (any, error) {
+	metric, err := s.GetOrNil(ctx, name)
 	if err != nil {
 		return nil, err
 	}
@@ -27,43 +32,47 @@ func (s *MemStorage) Get(name string) (any, error) {
 	return metric, nil
 }
 
-func (s *MemStorage) GetList() (map[string]any, error) {
-	metrics := make(map[string]any)
-	var err error
-	s.storage.Range(func(key, value any) bool {
-		name, ok := key.(string)
-		if !ok {
-			err = errors.New("failed to convert key to string")
-			return false
-		}
+func (s *MemStorage) GetList(ctx context.Context) (map[string]any, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	metrics := make(map[string]any, len(s.storage))
+	for name, value := range s.storage {
 		metrics[name] = value
-		return true
-	})
-	return metrics, err
+	}
+	return metrics, nil
 }
 
-func (s *MemStorage) GetOrNil(name string) (any, error) {
-	m, ok := s.storage.Load(name)
+func (s *MemStorage) GetOrNil(ctx context.Context, name string) (any, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	m, ok := s.storage[name]
 	if !ok {
 		return nil, nil
 	}
 	return m, nil
 }
 
-func (s *MemStorage) Add(name string, metric any) error {
-	_, ok := s.storage.Load(name)
+func (s *MemStorage) Add(ctx context.Context, name string, metric any) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	_, ok := s.storage[name]
 	if ok {
 		return fmt.Errorf("metric is already exist")
 	}
-	s.storage.Store(name, metric)
+	if s.storage == nil {
+		s.storage = make(map[string]any)
+	}
+	s.storage[name] = metric
 	return nil
 }
 
-func (s *MemStorage) Update(name string, updated any) error {
-	_, ok := s.storage.Load(name)
+func (s *MemStorage) Update(ctx context.Context, name string, updated any) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	_, ok := s.storage[name]
 	if !ok {
 		return fmt.Errorf("metric with name=%s not found", name)
 	}
-	s.storage.Store(name, updated)
+	s.storage[name] = updated
 	return nil
 }

@@ -17,11 +17,12 @@ const (
 )
 
 type Config struct {
-	Address         string `env:"ADDRESS"`
-	LogLevel        string `env:"LOG_LEVEL"`
-	StoreInterval   *int   `env:"STORE_INTERVAL"`
-	FileStoragePath string `env:"FILE_STORAGE_PATH"`
-	IsNeedRestore   *bool  `env:"RESTORE"`
+	Address         string  `env:"ADDRESS"`
+	LogLevel        string  `env:"LOG_LEVEL"`
+	StoreInterval   *int    `env:"STORE_INTERVAL"`
+	FileStoragePath string  `env:"FILE_STORAGE_PATH"`
+	IsNeedRestore   *bool   `env:"RESTORE"`
+	DatabaseDsn     *string `env:"DATABASE_DSN"`
 }
 
 func New() (*Config, error) {
@@ -46,14 +47,22 @@ func (cfg *Config) parseFlags() {
 		storeInterval   int
 		fileStoragePath string
 		isNeedRestore   bool
+		dbConnString    string
 	)
 	flag.StringVar(&address, "a", defaultAddress, "address to run a server")
 	flag.StringVar(&logLevel, "l", defaultLogLvl, "logger level")
 	flag.IntVar(&storeInterval, "i", defaultStoreInterval, "metrics store interval (int seconds)")
 	flag.StringVar(&fileStoragePath, "f", defaultFileStoragePath, "file storage destination (path)")
 	flag.BoolVar(&isNeedRestore, "r", defaultIsNeedRestore, "restore metrics after start")
+	flag.StringVar(&dbConnString, "d", "", "postgres db connection string")
 
 	flag.Parse()
+	dbFlagSet := false
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "d" {
+			dbFlagSet = true
+		}
+	})
 
 	if cfg.Address == "" {
 		cfg.Address = address
@@ -69,5 +78,11 @@ func (cfg *Config) parseFlags() {
 	}
 	if cfg.IsNeedRestore == nil {
 		cfg.IsNeedRestore = &isNeedRestore
+	}
+	if cfg.DatabaseDsn != nil && *cfg.DatabaseDsn == "" {
+		cfg.DatabaseDsn = nil
+	}
+	if cfg.DatabaseDsn == nil && dbFlagSet && dbConnString != "" {
+		cfg.DatabaseDsn = &dbConnString
 	}
 }

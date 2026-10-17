@@ -1,6 +1,7 @@
 package memstorage
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -31,7 +32,7 @@ func TestAdd(t *testing.T) {
 			metricName:  "existing_metric",
 			metricValue: 100,
 			setup: func(s *MemStorage) {
-				s.storage.Store("existing_metric", 50)
+				s.storage["existing_metric"] = 50
 			},
 			expectError: true,
 		},
@@ -42,13 +43,13 @@ func TestAdd(t *testing.T) {
 			s := New()
 			tt.setup(s)
 
-			err := s.Add(tt.metricName, tt.metricValue)
+			err := s.Add(context.Background(), tt.metricName, tt.metricValue)
 
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				val, ok := s.storage.Load(tt.metricName)
+				val, ok := s.storage[tt.metricName]
 				assert.True(t, ok)
 				assert.Equal(t, tt.metricValue, val)
 			}
@@ -67,7 +68,7 @@ func TestGet(t *testing.T) {
 		{
 			name:        "existing metric",
 			metricName:  "test_metric",
-			setup:       func(s *MemStorage) { s.storage.Store("test_metric", 42) },
+			setup:       func(s *MemStorage) { s.storage["test_metric"] = 42 },
 			expectedVal: 42,
 			expectError: false,
 		},
@@ -85,7 +86,7 @@ func TestGet(t *testing.T) {
 			s := New()
 			tt.setup(s)
 
-			val, err := s.Get(tt.metricName)
+			val, err := s.Get(context.Background(), tt.metricName)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -107,7 +108,7 @@ func TestGetOrNil(t *testing.T) {
 		{
 			name:        "existing metric",
 			metricName:  "test_metric",
-			setup:       func(s *MemStorage) { s.storage.Store("test_metric", 42) },
+			setup:       func(s *MemStorage) { s.storage["test_metric"] = 42 },
 			expectedVal: 42,
 		},
 		{
@@ -123,7 +124,7 @@ func TestGetOrNil(t *testing.T) {
 			s := New()
 			tt.setup(s)
 
-			val, err := s.GetOrNil(tt.metricName)
+			val, err := s.GetOrNil(context.Background(), tt.metricName)
 
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expectedVal, val)
@@ -143,7 +144,7 @@ func TestUpdate(t *testing.T) {
 			name:        "successful update",
 			metricName:  "test_metric",
 			newValue:    100,
-			setup:       func(s *MemStorage) { s.storage.Store("test_metric", 42) },
+			setup:       func(s *MemStorage) { s.storage["test_metric"] = 42 },
 			expectError: false,
 		},
 		{
@@ -160,13 +161,13 @@ func TestUpdate(t *testing.T) {
 			s := New()
 			tt.setup(s)
 
-			err := s.Update(tt.metricName, tt.newValue)
+			err := s.Update(context.Background(), tt.metricName, tt.newValue)
 
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				val, ok := s.storage.Load(tt.metricName)
+				val, ok := s.storage[tt.metricName]
 				assert.True(t, ok)
 				assert.Equal(t, tt.newValue, val)
 			}
@@ -190,9 +191,9 @@ func TestGetList(t *testing.T) {
 		{
 			name: "multiple metrics",
 			setup: func(s *MemStorage) {
-				s.storage.Store("metric1", 42)
-				s.storage.Store("metric2", "value")
-				s.storage.Store("metric3", 3.14)
+				s.storage["metric1"] = 42
+				s.storage["metric2"] = "value"
+				s.storage["metric3"] = 3.14
 			},
 			expected: map[string]any{
 				"metric1": 42,
@@ -208,7 +209,7 @@ func TestGetList(t *testing.T) {
 			s := New()
 			tt.setup(s)
 
-			metrics, err := s.GetList()
+			metrics, err := s.GetList(context.Background())
 
 			if tt.expectErr {
 				assert.Error(t, err)
