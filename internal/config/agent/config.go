@@ -3,6 +3,7 @@ package agentconfig
 import (
 	"flag"
 	"fmt"
+	"os"
 
 	"github.com/caarlos0/env/v6"
 	"github.com/nikitavaulin/metrics/internal/validation"
@@ -15,9 +16,10 @@ const (
 )
 
 type Config struct {
-	TargetServerAddr string `env:"ADDRESS"`
-	ReportInterval   *int   `env:"REPORT_INTERVAL"`
-	PollInterval     *int   `env:"POLL_INTERVAL"`
+	Key              *string `env:"KEY"`
+	TargetServerAddr string  `env:"ADDRESS"`
+	ReportInterval   *int    `env:"REPORT_INTERVAL"`
+	PollInterval     *int    `env:"POLL_INTERVAL"`
 }
 
 func New() (*Config, error) {
@@ -40,13 +42,23 @@ func (cfg *Config) parseFlags() {
 		targetServerAddr string
 		reportInterval   int
 		pollInterval     int
+		key              string
 	)
 
 	flag.StringVar(&targetServerAddr, "a", defaultTargetServerAddr, "address to run a server")
 	flag.IntVar(&reportInterval, "r", defaultReportInterval, "report interval in seconds")
 	flag.IntVar(&pollInterval, "p", defaultPollInterval, "poll interval in seconds")
+	flag.StringVar(&key, "k", "", "key for signing metrics")
 	flag.Parse()
 
+	if envKey, ok := os.LookupEnv("KEY"); ok {
+		cfg.Key = &envKey
+	}
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "k" && cfg.Key == nil {
+			cfg.Key = &key
+		}
+	})
 	if cfg.TargetServerAddr == "" {
 		cfg.TargetServerAddr = targetServerAddr
 	}

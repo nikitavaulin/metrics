@@ -3,7 +3,11 @@ package agent
 import (
 	"compress/gzip"
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,6 +16,43 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestSendJSONHash(t *testing.T) {
+	key, emptyKey := "secret", ""
+	for _, tt := range []struct {
+		name string
+		key  *string
+	}{
+		{name: "without key"},
+		{name: "with key", key: &key},
+		{name: "with empty key", key: &emptyKey},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				reader, err := gzip.NewReader(r.Body)
+				if !assert.NoError(t, err) {
+					w.WriteHeader(http.StatusBadRequest)
+					return
+				}
+				defer reader.Close()
+				body, err := io.ReadAll(reader)
+				assert.NoError(t, err)
+				assert.JSONEq(t, `{"metric":"Alloc"}`, string(body))
+				if tt.key == nil {
+					assert.Nil(t, r.Header.Values("HashSHA256"))
+				} else {
+					h := hmac.New(sha256.New, []byte(*tt.key))
+					h.Write(body)
+					assert.Equal(t, hex.EncodeToString(h.Sum(nil)), r.Header.Get("HashSHA256"))
+				}
+				w.WriteHeader(http.StatusOK)
+			}))
+			defer server.Close()
+			a := &Agent{hashingKey: tt.key}
+			require.NoError(t, a.sendJSON(context.Background(), server.URL, map[string]string{"metric": "Alloc"}, server.Client()))
+		})
+	}
+}
 
 func TestAgentGetPath(t *testing.T) {
 	agent := &Agent{serverAddr: "http://localhost:8080"}

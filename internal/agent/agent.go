@@ -23,12 +23,14 @@ type Agent struct {
 	randomValue    domain.Gauge
 	pollCount      domain.Counter
 	serverAddr     string
+	hashingKey     *string
 	pollInterval   time.Duration
 	reportInterval time.Duration
 }
 
 func New(cfg *agentconfig.Config) *Agent {
 	return &Agent{
+		hashingKey:     cfg.Key,
 		serverAddr:     "http://" + cfg.TargetServerAddr,
 		pollInterval:   time.Duration(*cfg.PollInterval) * time.Second,
 		reportInterval: time.Duration(*cfg.ReportInterval) * time.Second,

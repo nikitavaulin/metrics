@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/nikitavaulin/metrics/internal/retry"
 	"io"
 	"log"
 	"net"
@@ -15,6 +14,8 @@ import (
 	"time"
 
 	models "github.com/nikitavaulin/metrics/internal/model"
+	"github.com/nikitavaulin/metrics/internal/retry"
+	"github.com/nikitavaulin/metrics/internal/security"
 )
 
 const (
@@ -75,6 +76,9 @@ func (a *Agent) sendJSON(ctx context.Context, url string, data any, client *http
 	}
 	req.Header.Add("Content-Type", contentTypeJSON)
 	req.Header.Add("Content-Encoding", "gzip")
+	if a.hashingKey != nil {
+		req.Header.Set("HashSHA256", security.Hash(string(body), *a.hashingKey))
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {
