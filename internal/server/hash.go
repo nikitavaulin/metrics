@@ -13,12 +13,8 @@ import (
 func HashRequest(next http.Handler, key *string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		requestHash := r.Header.Get("HashSHA256")
-		if key == nil {
+		if key == nil || requestHash == "" {
 			next.ServeHTTP(w, r)
-			return
-		}
-		if requestHash == "" {
-			http.Error(w, "missing request hash", http.StatusBadRequest)
 			return
 		}
 

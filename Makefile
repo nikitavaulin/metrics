@@ -125,7 +125,7 @@ autotest-11: build
 				-server-port=8080 \
 				-source-path=.
 
-.PHONY: autotest-12 autotest-13
+.PHONY: autotest-12 autotest-13 autotest-14
 autotest-12: build
 		@ADDRESS="localhost:8080" \
 		./metricstest -test.v -test.run=^TestIteration12$$ \
@@ -141,5 +141,17 @@ autotest-13: build
 				-agent-binary-path=./agent.exe \
 				-binary-path=./server.exe \
 				-database-dsn='$(DATABASE_DSN)' \
+				-server-port=8080 \
+				-source-path=.
+
+AUTOTEST_KEY ?= autotest-14-key
+
+autotest-14: build
+		@ADDRESS="localhost:8080" KEY="$(AUTOTEST_KEY)" \
+		./metricstest -test.v -test.run=^TestIteration14$$ \
+				-agent-binary-path=./agent.exe \
+				-binary-path=./server.exe \
+				-database-dsn='$(DATABASE_DSN)' \
+				-key="$(AUTOTEST_KEY)" \
 				-server-port=8080 \
 				-source-path=.

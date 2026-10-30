@@ -26,5 +26,9 @@ func (s *HTTPServer) RegisterRouter(router Router) {
 }
 
 func (s *HTTPServer) Run() error {
-	return http.ListenAndServe(s.address, LogRequest(GzipCompress(HashResponse(HashRequest(s.mux, s.hashingKey), s.hashingKey))))
+	return http.ListenAndServe(s.address, LogRequest(s.handler()))
+}
+
+func (s *HTTPServer) handler() http.Handler {
+	return GzipResponse(HashResponse(GzipRequest(HashRequest(s.mux, s.hashingKey)), s.hashingKey))
 }

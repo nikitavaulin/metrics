@@ -59,6 +59,7 @@ func (a *Agent) sendRetriable(ctx context.Context, url string, data any, client 
 	}
 	return nil
 }
+
 func (a *Agent) sendJSON(ctx context.Context, url string, data any, client *http.Client) error {
 	body, err := json.Marshal(data)
 	if err != nil {
