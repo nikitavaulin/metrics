@@ -13,6 +13,7 @@ const (
 	defaultTargetServerAddr string = "localhost:8080"
 	defaultReportInterval   int    = 10
 	defaultPollInterval     int    = 2
+	defaultRateLimit        int    = 1
 )
 
 type Config struct {
@@ -20,6 +21,7 @@ type Config struct {
 	TargetServerAddr string  `env:"ADDRESS"`
 	ReportInterval   *int    `env:"REPORT_INTERVAL"`
 	PollInterval     *int    `env:"POLL_INTERVAL"`
+	RateLimit        *int    `env:"RATE_LIMIT"`
 }
 
 func New() (*Config, error) {
@@ -29,6 +31,9 @@ func New() (*Config, error) {
 	}
 
 	cfg.parseFlags()
+	if *cfg.RateLimit < 1 {
+		return nil, fmt.Errorf("rate limit must be greater than or equal to 1: %d", *cfg.RateLimit)
+	}
 
 	if err := validation.ValidateServerAddress(cfg.TargetServerAddr); err != nil {
 		return nil, fmt.Errorf("invalid server address: %w", err)
@@ -42,12 +47,14 @@ func (cfg *Config) parseFlags() {
 		targetServerAddr string
 		reportInterval   int
 		pollInterval     int
+		rateLimit        int
 		key              string
 	)
 
 	flag.StringVar(&targetServerAddr, "a", defaultTargetServerAddr, "address to run a server")
 	flag.IntVar(&reportInterval, "r", defaultReportInterval, "report interval in seconds")
 	flag.IntVar(&pollInterval, "p", defaultPollInterval, "poll interval in seconds")
+	flag.IntVar(&rateLimit, "l", defaultRateLimit, "maximum number of concurrent outgoing requests")
 	flag.StringVar(&key, "k", "", "key for signing metrics")
 	flag.Parse()
 
@@ -67,5 +74,8 @@ func (cfg *Config) parseFlags() {
 	}
 	if cfg.PollInterval == nil {
 		cfg.PollInterval = &pollInterval
+	}
+	if cfg.RateLimit == nil {
+		cfg.RateLimit = &rateLimit
 	}
 }

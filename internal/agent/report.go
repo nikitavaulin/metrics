@@ -13,24 +13,77 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/nikitavaulin/metrics/internal/logger"
 	models "github.com/nikitavaulin/metrics/internal/model"
 	"github.com/nikitavaulin/metrics/internal/retry"
 	"github.com/nikitavaulin/metrics/internal/security"
+	"go.uber.org/zap"
 )
 
 const (
 	contentType     string = "text/plain"
 	contentTypeJSON string = "application/json"
+	batchSize              = 10
 )
 
 func (a *Agent) Report(ctx context.Context) error {
+	metrics := a.snapshotMetrics()
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	url := fmt.Sprintf("%s/updates/", a.serverAddr)
+
+	for start := 0; start < len(metrics); start += batchSize {
+		end := min(start+batchSize, len(metrics))
+		if err := a.sendRetriable(ctx, url, metrics[start:end], client); err != nil {
+			return fmt.Errorf("failed to send metrics batch: %w", err)
+		}
+	}
+	return nil
+}
+
+func (a *Agent) reportWorker(ctx context.Context, jobs <-chan []models.Metrics) {
+	client := &http.Client{Timeout: 5 * time.Second}
+	url := fmt.Sprintf("%s/updates/", a.serverAddr)
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case batch, ok := <-jobs:
+			if !ok {
+				return
+			}
+			if err := a.sendRetriable(ctx, url, batch, client); err != nil {
+				logger.Log.Error("report error", zap.Error(err))
+			}
+		}
+	}
+}
+
+func (a *Agent) enqueueMetrics(ctx context.Context, jobs chan<- []models.Metrics) error {
+	metrics := a.snapshotMetrics()
+	for start := 0; start < len(metrics); start += batchSize {
+		end := min(start+batchSize, len(metrics))
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case jobs <- metrics[start:end]:
+		}
+	}
+	return nil
+}
+
+func (a *Agent) snapshotMetrics() []models.Metrics {
 	a.mu.Lock()
-	metrics := make([]models.Metrics, 0, len(a.metrics)+2)
-	for name, value := range a.metrics {
-		val := float64(value)
-		metrics = append(metrics, models.Metrics{
-			ID: name, MType: models.Gauge, Value: &val,
-		})
+	defer a.mu.Unlock()
+
+	metrics := make([]models.Metrics, 0, len(a.metricsRuntime)+len(a.metricsGopsutil)+2)
+	for _, gauges := range []gaugeMetrics{a.metricsRuntime, a.metricsGopsutil} {
+		for name, value := range gauges {
+			val := float64(value)
+			metrics = append(metrics, models.Metrics{
+				ID: name, MType: models.Gauge, Value: &val,
+			})
+		}
 	}
 	randomValue := float64(a.randomValue)
 	pollCount := int64(a.pollCount)
@@ -39,15 +92,7 @@ func (a *Agent) Report(ctx context.Context) error {
 		models.Metrics{ID: randomValueName, MType: models.Gauge, Value: &randomValue},
 		models.Metrics{ID: pollCountName, MType: models.Counter, Delta: &pollCount},
 	)
-	a.mu.Unlock()
-
-	client := &http.Client{Timeout: 5 * time.Second}
-	url := fmt.Sprintf("%s/updates/", a.serverAddr)
-
-	if err := a.sendRetriable(ctx, url, metrics, client); err != nil {
-		return fmt.Errorf("failed to send metrics batch: %w", err)
-	}
-	return nil
+	return metrics
 }
 
 func (a *Agent) sendRetriable(ctx context.Context, url string, data any, client *http.Client) error {

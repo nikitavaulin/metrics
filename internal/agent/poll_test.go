@@ -8,7 +8,7 @@ import (
 )
 
 func TestPollRuntime(t *testing.T) {
-	metrics := pollRuntime()
+	metrics := getRuntimeMetrics()
 
 	assert.NotNil(t, metrics)
 
@@ -34,25 +34,25 @@ func TestPollRuntime(t *testing.T) {
 
 func TestAgentPoll(t *testing.T) {
 	agent := &Agent{
-		metrics:     make(runtimeMetrics),
-		randomValue: 0,
-		pollCount:   0,
+		metricsRuntime: make(gaugeMetrics),
+		randomValue:    0,
+		pollCount:      0,
 	}
 
 	assert.Equal(t, 0, int(agent.pollCount))
 	assert.Equal(t, domain.Gauge(0), agent.randomValue)
-	assert.Empty(t, agent.metrics)
+	assert.Empty(t, agent.metricsRuntime)
 
-	agent.Poll()
+	agent.poll()
 
-	assert.NotEmpty(t, agent.metrics)
+	assert.NotEmpty(t, agent.metricsRuntime)
 
 	assert.Equal(t, 1, int(agent.pollCount))
 
 	prevPollCount := agent.pollCount
-	agent.Poll()
+	agent.poll()
 
 	assert.Equal(t, prevPollCount+1, agent.pollCount)
 
-	assert.NotEmpty(t, agent.metrics)
+	assert.NotEmpty(t, agent.metricsRuntime)
 }
