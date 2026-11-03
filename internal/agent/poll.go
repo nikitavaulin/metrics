@@ -1,16 +1,22 @@
 package agent
 
 import (
+	"fmt"
 	"math/rand/v2"
 	"runtime"
 
 	"github.com/nikitavaulin/metrics/internal/domain"
+	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/mem"
 )
 
-func (a *Agent) Poll() {
+func (a *Agent) poll() {
+	metrics := getRuntimeMetrics()
+	randomValue := getRandom()
+
 	a.mu.Lock()
-	a.metrics = pollRuntime()
-	a.randomValue = getRandom()
+	a.metricsRuntime = metrics
+	a.randomValue = randomValue
 	a.pollCount++
 	a.mu.Unlock()
 }
@@ -20,8 +26,8 @@ func getRandom() domain.Gauge {
 	return domain.Gauge(value)
 }
 
-func pollRuntime() runtimeMetrics {
-	metrics := make(runtimeMetrics)
+func getRuntimeMetrics() gaugeMetrics {
+	metrics := make(gaugeMetrics)
 
 	var stats runtime.MemStats
 	runtime.ReadMemStats(&stats)
@@ -55,4 +61,38 @@ func pollRuntime() runtimeMetrics {
 	metrics["TotalAlloc"] = domain.Gauge(stats.TotalAlloc)
 
 	return metrics
+}
+
+func (a *Agent) pollGopsUtil() error {
+	metrics, err := getGopsutilMetrics()
+	if err != nil {
+		return fmt.Errorf("failed to get gopsutil metrics: %w", err)
+	}
+
+	a.mu.Lock()
+	a.metricsGopsutil = metrics
+	a.mu.Unlock()
+
+	return nil
+}
+
+func getGopsutilMetrics() (gaugeMetrics, error) {
+	memory, err := mem.VirtualMemory()
+	if err != nil {
+		return nil, fmt.Errorf("collect memory metrics: %w", err)
+	}
+
+	utilization, err := cpu.Percent(0, true)
+	if err != nil {
+		return nil, fmt.Errorf("collect CPU metrics: %w", err)
+	}
+
+	metrics := gaugeMetrics{
+		"TotalMemory": domain.Gauge(memory.Total),
+		"FreeMemory":  domain.Gauge(memory.Free),
+	}
+	for i, value := range utilization {
+		metrics[fmt.Sprintf("CPUutilization%d", i+1)] = domain.Gauge(value)
+	}
+	return metrics, nil
 }

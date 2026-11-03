@@ -3,6 +3,7 @@ package serverconfig
 import (
 	"flag"
 	"fmt"
+	"os"
 
 	"github.com/caarlos0/env/v6"
 	"github.com/nikitavaulin/metrics/internal/validation"
@@ -17,6 +18,7 @@ const (
 )
 
 type Config struct {
+	Key             *string `env:"KEY"`
 	Address         string  `env:"ADDRESS"`
 	LogLevel        string  `env:"LOG_LEVEL"`
 	StoreInterval   *int    `env:"STORE_INTERVAL"`
@@ -48,6 +50,7 @@ func (cfg *Config) parseFlags() {
 		fileStoragePath string
 		isNeedRestore   bool
 		dbConnString    string
+		key             string
 	)
 	flag.StringVar(&address, "a", defaultAddress, "address to run a server")
 	flag.StringVar(&logLevel, "l", defaultLogLvl, "logger level")
@@ -55,8 +58,17 @@ func (cfg *Config) parseFlags() {
 	flag.StringVar(&fileStoragePath, "f", defaultFileStoragePath, "file storage destination (path)")
 	flag.BoolVar(&isNeedRestore, "r", defaultIsNeedRestore, "restore metrics after start")
 	flag.StringVar(&dbConnString, "d", "", "postgres db connection string")
+	flag.StringVar(&key, "k", "", "key for signing metrics")
 
 	flag.Parse()
+	if envKey, ok := os.LookupEnv("KEY"); ok {
+		cfg.Key = &envKey
+	}
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "k" && cfg.Key == nil {
+			cfg.Key = &key
+		}
+	})
 	dbFlagSet := false
 	flag.Visit(func(f *flag.Flag) {
 		if f.Name == "d" {

@@ -8,14 +8,16 @@ import (
 )
 
 type HTTPServer struct {
-	mux     *chi.Mux
-	address string
+	mux        *chi.Mux
+	address    string
+	hashingKey *string
 }
 
 func New(config *serverconfig.Config) *HTTPServer {
 	return &HTTPServer{
-		mux:     chi.NewRouter(),
-		address: config.Address,
+		mux:        chi.NewRouter(),
+		address:    config.Address,
+		hashingKey: config.Key,
 	}
 }
 
@@ -24,5 +26,9 @@ func (s *HTTPServer) RegisterRouter(router Router) {
 }
 
 func (s *HTTPServer) Run() error {
-	return http.ListenAndServe(s.address, LogRequest(GzipCompress(s.mux)))
+	return http.ListenAndServe(s.address, LogRequest(s.handler()))
+}
+
+func (s *HTTPServer) handler() http.Handler {
+	return GzipResponse(HashResponse(GzipRequest(HashRequest(s.mux, s.hashingKey)), s.hashingKey))
 }

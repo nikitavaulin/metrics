@@ -35,7 +35,7 @@ func LogRequest(h http.Handler) http.Handler {
 	return http.HandlerFunc(logFunc)
 }
 
-func GzipCompress(next http.Handler) http.Handler {
+func GzipResponse(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		const gzipName = "gzip"
 		originalRW := w
@@ -46,16 +46,22 @@ func GzipCompress(next http.Handler) http.Handler {
 			defer gzipRW.Close()
 		}
 
-		if r.Header.Get("Content-Encoding") == gzipName {
+		next.ServeHTTP(originalRW, r)
+	})
+}
+
+func GzipRequest(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Content-Encoding") == "gzip" {
 			gzipR, err := gzipcompress.NewReader(r.Body)
 			if err != nil {
-				ErrorResponse(w, err, err.Error(), http.StatusInternalServerError)
+				ErrorResponse(w, err, "invalid gzip request body", http.StatusBadRequest)
 				return
 			}
 			r.Body = gzipR
 			defer gzipR.Close()
 		}
 
-		next.ServeHTTP(originalRW, r)
+		next.ServeHTTP(w, r)
 	})
 }
