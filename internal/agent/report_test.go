@@ -6,7 +6,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
+
 	"fmt"
 	"io"
 	"net/http"
@@ -87,110 +87,6 @@ func TestAgentGetPath(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result := agent.getPath(tt.mtype, tt.metric, tt.value)
 			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
-func TestAgentReport(t *testing.T) {
-	var requestsCount int
-	var received []models.Metrics
-
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requestsCount++
-		assert.Equal(t, http.MethodPost, r.Method)
-		assert.Equal(t, "/updates/", r.URL.Path)
-		assert.Equal(t, contentTypeJSON, r.Header.Get("Content-Type"))
-		assert.Equal(t, "gzip", r.Header.Get("Content-Encoding"))
-		reader, err := gzip.NewReader(r.Body)
-		if !assert.NoError(t, err) {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		defer reader.Close()
-		if err := json.NewDecoder(reader).Decode(&received); !assert.NoError(t, err) {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer server.Close()
-
-	agent := &Agent{
-		metricsRuntime: gaugeMetrics{
-			"Alloc":     123.45,
-			"HeapAlloc": 456.78,
-			"NumGC":     10.0,
-		},
-		randomValue: 0.987,
-		pollCount:   5,
-		serverAddr:  server.URL,
-	}
-
-	err := agent.Report(context.Background())
-	assert.NoError(t, err)
-	require.Equal(t, 1, requestsCount)
-	require.Len(t, received, 5)
-	got := make(map[string]models.Metrics, len(received))
-	for _, metric := range received {
-		got[metric.ID] = metric
-	}
-	for name, expected := range map[string]float64{
-		"Alloc": 123.45, "HeapAlloc": 456.78, "NumGC": 10, randomValueName: 0.987,
-	} {
-		metric := got[name]
-		assert.Equal(t, models.Gauge, metric.MType)
-		require.NotNil(t, metric.Value)
-		assert.Equal(t, expected, *metric.Value)
-		assert.Nil(t, metric.Delta)
-	}
-	metric := got[pollCountName]
-	assert.Equal(t, models.Counter, metric.MType)
-	require.NotNil(t, metric.Delta)
-	assert.Equal(t, int64(5), *metric.Delta)
-	assert.Nil(t, metric.Value)
-}
-
-func TestAgentReportServerError(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-	}))
-	defer server.Close()
-	agent := &Agent{serverAddr: server.URL}
-	require.ErrorContains(t, agent.Report(context.Background()), "500")
-}
-
-func TestAgentReportBatches(t *testing.T) {
-	for _, count := range []int{batchSize - 1, batchSize, batchSize + 1, 2*batchSize + 3} {
-		t.Run(fmt.Sprint(count), func(t *testing.T) {
-			var sizes []int
-			var received []models.Metrics
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				reader, err := gzip.NewReader(r.Body)
-				if !assert.NoError(t, err) {
-					w.WriteHeader(http.StatusBadRequest)
-					return
-				}
-				defer reader.Close()
-				var batch []models.Metrics
-				if !assert.NoError(t, json.NewDecoder(reader).Decode(&batch)) {
-					w.WriteHeader(http.StatusBadRequest)
-					return
-				}
-				sizes = append(sizes, len(batch))
-				received = append(received, batch...)
-			}))
-			defer server.Close()
-			a := &Agent{serverAddr: server.URL, metricsGopsutil: make(gaugeMetrics)}
-			for i := 0; i < count-2; i++ {
-				a.metricsGopsutil[fmt.Sprintf("metric%d", i)] = domain.Gauge(i)
-			}
-			expected := a.snapshotMetrics()
-			require.NoError(t, a.Report(context.Background()))
-			require.Len(t, sizes, (count+batchSize-1)/batchSize)
-			for i, size := range sizes {
-				assert.Equal(t, min(batchSize, count-i*batchSize), size)
-			}
-			assert.ElementsMatch(t, expected, received)
 		})
 	}
 }

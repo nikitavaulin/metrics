@@ -125,11 +125,7 @@ autotest-11: build
 				-server-port=8080 \
 				-source-path=.
 
-<<<<<<< Updated upstream
-.PHONY: autotest-12 autotest-13 autotest-14
-=======
-.PHONY: autotest-12 autotest-13 autotest-15
->>>>>>> Stashed changes
+.PHONY: autotest-12 autotest-13 autotest-14 autotest-15
 autotest-12: build
 		@ADDRESS="localhost:8080" \
 		./metricstest -test.v -test.run=^TestIteration12$$ \
@@ -157,13 +153,6 @@ autotest-14: build
 				-binary-path=./server.exe \
 				-database-dsn='$(DATABASE_DSN)' \
 				-key="$(AUTOTEST_KEY)" \
-
-autotest-15: build
-		@ADDRESS="localhost:8080" \
-		./metricstest -test.v -test.run=^TestIteration15$$ \
-				-agent-binary-path=./agent.exe \
-				-binary-path=./server.exe \
-				-database-dsn='$(DATABASE_DSN)' \
-				-key="$(AUTOTEST_KEY)" \
 				-server-port=8080 \
 				-source-path=.
+

@@ -26,21 +26,6 @@ const (
 	batchSize              = 10
 )
 
-func (a *Agent) Report(ctx context.Context) error {
-	metrics := a.snapshotMetrics()
-
-	client := &http.Client{Timeout: 5 * time.Second}
-	url := fmt.Sprintf("%s/updates/", a.serverAddr)
-
-	for start := 0; start < len(metrics); start += batchSize {
-		end := min(start+batchSize, len(metrics))
-		if err := a.sendRetriable(ctx, url, metrics[start:end], client); err != nil {
-			return fmt.Errorf("failed to send metrics batch: %w", err)
-		}
-	}
-	return nil
-}
-
 func (a *Agent) reportWorker(ctx context.Context, jobs <-chan []models.Metrics) {
 	client := &http.Client{Timeout: 5 * time.Second}
 	url := fmt.Sprintf("%s/updates/", a.serverAddr)
